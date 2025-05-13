@@ -1,0 +1,2 @@
+# Ignore node modules in frontend
+pinboard-frontend/node_modules/
