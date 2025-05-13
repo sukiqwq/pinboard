@@ -1,2 +1,0 @@
-# pinboard
-A DB Project
