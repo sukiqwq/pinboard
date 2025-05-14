@@ -66,40 +66,28 @@ const Footer = () => {
     <FooterContainer>
       <FooterContent>
         <Column>
-          <ColumnTitle>关于我们</ColumnTitle>
-          <FooterLink to="/about">关于 Pinboard</FooterLink>
-          <FooterLink to="/team">团队介绍</FooterLink>
-          <FooterLink to="/careers">加入我们</FooterLink>
-          <FooterLink to="/blog">官方博客</FooterLink>
+          <ColumnTitle>About</ColumnTitle>
+          <FooterLink to="/about">About Pinboard</FooterLink>
         </Column>
         
         <Column>
-          <ColumnTitle>发现</ColumnTitle>
-          <FooterLink to="/categories">内容分类</FooterLink>
-          <FooterLink to="/popular">热门内容</FooterLink>
-          <FooterLink to="/trending">趋势</FooterLink>
-          <FooterLink to="/collections">精选集</FooterLink>
+          <ColumnTitle>Discover</ColumnTitle>
+          <FooterLink to="/">Home</FooterLink>
         </Column>
         
         <Column>
-          <ColumnTitle>帮助</ColumnTitle>
-          <FooterLink to="/help">帮助中心</FooterLink>
-          <FooterLink to="/faq">常见问题</FooterLink>
-          <FooterLink to="/contact">联系我们</FooterLink>
-          <FooterLink to="/feedback">意见反馈</FooterLink>
+          <ColumnTitle>Help</ColumnTitle>
+          <FooterLink to="/contact">Contact Us</FooterLink>
         </Column>
         
         <Column>
-          <ColumnTitle>社区</ColumnTitle>
-          <ExternalLink href="https://weibo.com" target="_blank" rel="noopener noreferrer">新浪微博</ExternalLink>
-          <ExternalLink href="https://wx.qq.com" target="_blank" rel="noopener noreferrer">微信公众号</ExternalLink>
-          <ExternalLink href="https://www.zhihu.com" target="_blank" rel="noopener noreferrer">知乎</ExternalLink>
-          <ExternalLink href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</ExternalLink>
+          <ColumnTitle>Community</ColumnTitle>
+          <ExternalLink href="https://github.com/sukiqwq/pinboard" target="_blank" rel="noopener noreferrer">GitHub</ExternalLink>
         </Column>
       </FooterContent>
       
       <Copyright>
-        © {currentYear} Pinboard 图钉分享平台 - 数据库课程项目 | 保留所有权利
+        © {currentYear} Pinboard - Database Course Project | All rights reserved
       </Copyright>
     </FooterContainer>
   );

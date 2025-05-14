@@ -1,3 +1,4 @@
+@import '../variables.css';
 /* CSS 重置 */
 *, *::before, *::after {
   box-sizing: border-box;
