@@ -11,10 +11,14 @@ const NotFound = () => {
     <NotFoundContainer>
       <Title>404</Title>
       <Message>
-        哎呀！您要找的页面不存在或已被移除。<br />
-        请尝试使用搜索功能或返回首页。
+        {/* 页面未找到的提示信息 */}
+        {/* Message shown when page is not found */}
+        Oops! The page you're looking for doesn't exist or has been removed.<br />
+        Try using the search function or go back to the homepage.
       </Message>
-      <HomeButton to="/">返回首页</HomeButton>
+      {/* 返回首页按钮 */}
+      {/* Button to return to homepage */}
+      <HomeButton to="/">Go to Homepage</HomeButton>
     </NotFoundContainer>
   );
 };

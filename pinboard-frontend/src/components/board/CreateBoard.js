@@ -2,101 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { createBoard } from '../../services/boardService';
-import styled from 'styled-components';
-
-const Container = styled.div`
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 2rem;
-  background-color: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const Title = styled.h1`
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  
-  &:focus {
-    border-color: #e60023;
-    outline: none;
-  }
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  resize: vertical;
-  min-height: 100px;
-  
-  &:focus {
-    border-color: #e60023;
-    outline: none;
-  }
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const Checkbox = styled.input`
-  margin-right: 0.5rem;
-`;
-
-const Button = styled.button`
-  background-color: #e60023;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  
-  &:hover {
-    background-color: #ad081b;
-  }
-  
-  &:disabled {
-    background-color: #ddd;
-    cursor: not-allowed;
-  }
-`;
-
-const ErrorMessage = styled.div`
-  color: #e60023;
-  margin-bottom: 1rem;
-  text-align: center;
-`;
+import {
+  Container,
+  Title,
+  Form,
+  FormGroup,
+  Label,
+  Input,
+  TextArea,
+  CheckboxGroup,
+  Checkbox,
+  Button,
+  ErrorMessage
+} from './CreateBoard.styles';
 
 const CreateBoard = () => {
   const navigate = useNavigate();
@@ -111,6 +29,7 @@ const CreateBoard = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    // 表单项更新处理 / Handle input and checkbox change
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -121,7 +40,7 @@ const CreateBoard = () => {
     e.preventDefault();
 
     if (!formData.boardName.trim()) {
-      setError('请输入面板名称');
+      setError('Please enter a board name');
       return;
     }
 
@@ -130,17 +49,17 @@ const CreateBoard = () => {
       setError('');
 
       const boardData = {
-        board_name: formData.boardName, // 确保字段名与后端一致
+        board_name: formData.boardName, // 确保字段名与后端一致 / Match backend field
         descriptor: formData.description,
         allow_friends_comment: formData.allowFriendsComment,
       };
 
       const response = await createBoard(boardData);
-      console.log('创建面板响应:', response.data);
+      console.log('Board created:', response.data);
       navigate(`/board/${response.data.board_id}`);
     } catch (err) {
-      console.error('创建面板失败:', err);
-      setError(err.response?.data?.message || '创建面板失败，请稍后再试');
+      console.error('Failed to create board:', err);
+      setError(err.response?.data?.message || 'Failed to create board. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -148,32 +67,32 @@ const CreateBoard = () => {
 
   return (
     <Container>
-      <Title>创建新面板</Title>
+      <Title>Create New Board</Title>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
       <Form onSubmit={handleSubmit}>
         <FormGroup>
-          <Label htmlFor="boardName">面板名称</Label>
+          <Label htmlFor="boardName">Board Name</Label>
           <Input
             type="text"
             id="boardName"
             name="boardName"
             value={formData.boardName}
             onChange={handleChange}
-            placeholder="例如：美食灵感、旅行计划..."
+            placeholder="e.g. Food Ideas, Travel Plans..."
             required
           />
         </FormGroup>
 
         <FormGroup>
-          <Label htmlFor="description">描述 (可选)</Label>
+          <Label htmlFor="description">Description (Optional)</Label>
           <TextArea
             id="description"
             name="description"
             value={formData.description}
             onChange={handleChange}
-            placeholder="描述这个面板的内容..."
+            placeholder="Describe the content of this board..."
           />
         </FormGroup>
 
@@ -187,13 +106,13 @@ const CreateBoard = () => {
               onChange={handleChange}
             />
             <Label htmlFor="allowFriendsComment" style={{ marginBottom: 0 }}>
-              允许好友评论
+              Allow friends to comment
             </Label>
           </CheckboxGroup>
         </FormGroup>
 
         <Button type="submit" disabled={loading}>
-          {loading ? '创建中...' : '创建面板'}
+          {loading ? 'Creating...' : 'Create Board'}
         </Button>
       </Form>
     </Container>

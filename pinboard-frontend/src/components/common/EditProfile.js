@@ -29,11 +29,15 @@ const EditProfile = () => {
   const [loading, setLoading] = useState(false);
   
   useEffect(() => {
+    // 如果用户未登录，则重定向到登录页
+    // Redirect to login if user is not logged in
     if (!currentUser) {
       navigate('/login');
       return;
     }
     
+    // 初始化表单数据
+    // Initialize form data with current user info
     setFormData({
       username: currentUser.username || '',
       email: currentUser.email || '',
@@ -43,6 +47,8 @@ const EditProfile = () => {
   
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // 更新表单数据
+    // Update form data on input change
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -63,19 +69,22 @@ const EditProfile = () => {
         profile_info: formData.profileInfo
       };
       
+      // 提交更新请求
+      // Send profile update request
       const response = await updateUserProfile(profileData);
       
       // 更新本地用户信息
+      // Update local user info after successful update
       updateUser({
         ...currentUser,
         ...response.data
       });
       
-      setSuccess('个人资料已成功更新！');
+      setSuccess('Profile updated successfully!');
       setLoading(false);
     } catch (err) {
-      console.error('更新个人资料失败:', err);
-      setError(err.response?.data?.message || '更新个人资料失败，请稍后再试');
+      console.error('Failed to update profile:', err);
+      setError(err.response?.data?.message || 'Failed to update profile. Please try again later.');
       setLoading(false);
     }
   };
@@ -86,14 +95,14 @@ const EditProfile = () => {
   
   return (
     <Container>
-      <Title>编辑个人资料</Title>
+      <Title>Edit Profile</Title>
       
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {success && <SuccessMessage>{success}</SuccessMessage>}
       
       <Form onSubmit={handleSubmit}>
         <FormGroup>
-          <Label htmlFor="username">用户名</Label>
+          <Label htmlFor="username">Username</Label>
           <Input
             type="text"
             id="username"
@@ -105,7 +114,7 @@ const EditProfile = () => {
         </FormGroup>
         
         <FormGroup>
-          <Label htmlFor="email">电子邮箱</Label>
+          <Label htmlFor="email">Email</Label>
           <Input
             type="email"
             id="email"
@@ -117,18 +126,18 @@ const EditProfile = () => {
         </FormGroup>
         
         <FormGroup>
-          <Label htmlFor="profileInfo">个人简介</Label>
+          <Label htmlFor="profileInfo">Bio</Label>
           <TextArea
             id="profileInfo"
             name="profileInfo"
             value={formData.profileInfo}
             onChange={handleChange}
-            placeholder="介绍一下自己..."
+            placeholder="Tell us about yourself..."
           />
         </FormGroup>
         
         <Button type="submit" disabled={loading}>
-          {loading ? '保存中...' : '保存更改'}
+          {loading ? 'Saving...' : 'Save Changes'}
         </Button>
       </Form>
     </Container>

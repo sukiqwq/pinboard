@@ -3,101 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getBoard, updateBoard } from '../../services/boardService';
 import Spinner from '../common/Spinner';
-import styled from 'styled-components';
-
-const Container = styled.div`
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 2rem;
-  background-color: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const Title = styled.h1`
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  
-  &:focus {
-    border-color: #e60023;
-    outline: none;
-  }
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  resize: vertical;
-  min-height: 100px;
-  
-  &:focus {
-    border-color: #e60023;
-    outline: none;
-  }
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const Checkbox = styled.input`
-  margin-right: 0.5rem;
-`;
-
-const Button = styled.button`
-  background-color: #e60023;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  
-  &:hover {
-    background-color: #ad081b;
-  }
-  
-  &:disabled {
-    background-color: #ddd;
-    cursor: not-allowed;
-  }
-`;
-
-const ErrorMessage = styled.div`
-  color: #e60023;
-  margin-bottom: 1rem;
-  text-align: center;
-`;
+import {
+  Container,
+  Title,
+  Form,
+  FormGroup,
+  Label,
+  Input,
+  TextArea,
+  CheckboxGroup,
+  Checkbox,
+  Button,
+  ErrorMessage
+} from './CreateBoard.styles'; // Reusing the same styles as CreateBoard
 
 const EditBoard = () => {
   const { boardId } = useParams();
@@ -122,13 +40,14 @@ const EditBoard = () => {
         const response = await getBoard(boardId);
         const board = response.data;
         
-        // 检查是否为面板所有者
+        // 检查是否为面板所有者 / Check if the current user is the board owner
         if (currentUser && board.owner_user_id !== currentUser.user_id) {
-          setError('您没有权限编辑此面板');
+          setError('You do not have permission to edit this board.');
           navigate(`/board/${boardId}`);
           return;
         }
         
+        // 初始化表单数据 / Initialize form with existing board data
         setOriginalBoard(board);
         setFormData({
           boardName: board.board_name || '',
@@ -138,8 +57,8 @@ const EditBoard = () => {
         
         setLoading(false);
       } catch (err) {
-        console.error('获取面板失败:', err);
-        setError('获取面板信息失败，请稍后再试');
+        console.error('Failed to fetch board:', err);
+        setError('Failed to load board information. Please try again later.');
         setLoading(false);
       }
     };
@@ -159,7 +78,7 @@ const EditBoard = () => {
     e.preventDefault();
     
     if (!formData.boardName.trim()) {
-      setError('请输入面板名称');
+      setError('Please enter a board name.');
       return;
     }
     
@@ -177,8 +96,8 @@ const EditBoard = () => {
       
       navigate(`/board/${boardId}`);
     } catch (err) {
-      console.error('更新面板失败:', err);
-      setError(err.response?.data?.message || '更新面板失败，请稍后再试');
+      console.error('Failed to update board:', err);
+      setError(err.response?.data?.message || 'Failed to update board. Please try again later.');
     } finally {
       setSubmitting(false);
     }
@@ -194,13 +113,13 @@ const EditBoard = () => {
   
   return (
     <Container>
-      <Title>编辑面板</Title>
+      <Title>Edit Board</Title>
       
       {error && <ErrorMessage>{error}</ErrorMessage>}
       
       <Form onSubmit={handleSubmit}>
         <FormGroup>
-          <Label htmlFor="boardName">面板名称</Label>
+          <Label htmlFor="boardName">Board Name</Label>
           <Input
             type="text"
             id="boardName"
@@ -212,7 +131,7 @@ const EditBoard = () => {
         </FormGroup>
         
         <FormGroup>
-          <Label htmlFor="description">描述 (可选)</Label>
+          <Label htmlFor="description">Description (Optional)</Label>
           <TextArea
             id="description"
             name="description"
@@ -231,13 +150,13 @@ const EditBoard = () => {
               onChange={handleChange}
             />
             <Label htmlFor="allowFriendsComment" style={{ marginBottom: 0 }}>
-              允许好友评论
+              Allow friends to comment
             </Label>
           </CheckboxGroup>
         </FormGroup>
         
         <Button type="submit" disabled={submitting}>
-          {submitting ? '保存中...' : '保存更改'}
+          {submitting ? 'Saving...' : 'Save Changes'}
         </Button>
       </Form>
     </Container>
