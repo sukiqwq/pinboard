@@ -9,10 +9,10 @@ const StyledMasonry = styled(Masonry)`
   margin-left: -16px; /* gutter size offset */
 `;
 
-const MasonryColumn = styled.div`
-  padding-left: 16px; /* gutter size */
-  background-clip: padding-box;
-`;
+// const MasonryColumn = styled.div`
+//   padding-left: 16px; /* gutter size */
+//   background-clip: padding-box;
+// `;
 
 const NoResults = styled.div`
   text-align: center;

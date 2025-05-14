@@ -1,391 +1,265 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { getBoards } from '../../services/boardService';
-import { uploadPicture, createPin } from '../../services/pinService';
-import styled from 'styled-components';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Heart, MessageCircle, Share2, MoreHorizontal, ArrowLeft, BookmarkPlus, Send } from 'lucide-react';
+import { getPin, getComments, addComment, likePin, unlikePin } from '../../services/pinService';
 
-const CreatePinContainer = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 1.5rem;
-  background-color: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const Title = styled.h1`
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-`;
-
-const FormRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  
-  @media (min-width: 768px) {
-    flex-direction: row;
-    gap: 1.5rem;
-  }
-`;
-
-const FormColumn = styled.div`
-  flex: 1;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  
-  &:focus {
-    border-color: #e60023;
-    outline: none;
-  }
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  background-color: white;
-  
-  &:focus {
-    border-color: #e60023;
-    outline: none;
-  }
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  min-height: 100px;
-  resize: vertical;
-  
-  &:focus {
-    border-color: #e60023;
-    outline: none;
-  }
-`;
-
-const Button = styled.button`
-  background-color: #e60023;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  align-self: center;
-  
-  &:hover {
-    background-color: #ad081b;
-  }
-  
-  &:disabled {
-    background-color: #ddd;
-    cursor: not-allowed;
-  }
-`;
-
-const ErrorMessage = styled.div`
-  color: #e60023;
-  margin-bottom: 1rem;
-  text-align: center;
-`;
-
-const ImagePreview = styled.div`
-  margin-bottom: 1.5rem;
-  border-radius: 16px;
-  overflow: hidden;
-  max-width: 100%;
-  
-  img {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    display: block;
-  }
-`;
-
-const UploadArea = styled.div`
-  border: 2px dashed #ddd;
-  border-radius: 16px;
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.2s;
-  
-  &:hover {
-    border-color: #e60023;
-  }
-  
-  input {
-    display: none;
-  }
-  
-  svg {
-    margin-bottom: 1rem;
-    color: #888;
-  }
-  
-  p {
-    margin: 0;
-    color: #666;
-  }
-`;
-
-const BoardLink = styled.a`
-  display: block;
-  text-align: center;
-  margin-top: 1rem;
-  color: #0066cc;
-  text-decoration: none;
-  
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const CreatePin = () => {
-  const { currentUser } = useAuth();
-  const navigate = useNavigate();
-  
-  const [formData, setFormData] = useState({
-    boardId: '',
-    tags: '',
-    description: ''
+// 格式化日期时间的辅助函数
+const formatDateTime = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
   });
-  const [imageFile, setImageFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [boards, setBoards] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const { boardId, tags, description } = formData;
-  
-  // 获取用户的面板列表
-  useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        const response = await getBoards(currentUser.user_id);
-        setBoards(response.data);
-        
-        // 如果有面板，默认选择第一个
-        if (response.data.length > 0) {
-          setFormData(prev => ({ ...prev, boardId: response.data[0].board_id }));
-        }
-      } catch (err) {
-        console.error('获取面板失败:', err);
-        setError('无法加载您的面板，请稍后再试');
-      }
-    };
-    
-    fetchBoards();
-  }, [currentUser]);
-  
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-  
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    
-    if (file) {
-      // 验证文件类型
-      if (!file.type.match('image.*')) {
-        setError('请上传图片文件');
-        return;
-      }
-      
-      // 文件大小限制 (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('图片大小不能超过10MB');
-        return;
-      }
-      
-      setImageFile(file);
-      
-      // 创建预览
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!imageFile) {
-      setError('请选择一张图片上传');
-      return;
-    }
-    
-    if (!boardId) {
-      setError('请选择一个面板');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      setError('');
-      
-      // 1. 上传图片
-      const formData = new FormData();
-      formData.append('image', imageFile);
-      formData.append('tags', tags);
-      
-      const pictureResponse = await uploadPicture(formData);
-      const pictureId = pictureResponse.data.picture_id;
-      
-      // 2. 创建Pin
-      const pinData = {
-        board_id: boardId,
-        picture_id: pictureId,
-        description
-      };
-      
-      const pinResponse = await createPin(pinData);
-      
-      // 3. 重定向到新创建的图钉
-      navigate(`/pin/${pinResponse.data.pin_id}`);
-    } catch (err) {
-      console.error('创建图钉失败:', err);
-      setError(err.response?.data?.message || '创建图钉失败，请稍后再试');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <CreatePinContainer>
-      <Title>创建新图钉</Title>
-      
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-      
-      <Form onSubmit={handleSubmit}>
-        <FormRow>
-          <FormColumn>
-            {previewUrl ? (
-              <ImagePreview>
-                <img src={previewUrl} alt="预览" />
-              </ImagePreview>
-            ) : (
-              <UploadArea onClick={() => document.getElementById('image-upload').click()}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
-                </svg>
-                <p>点击选择一张图片</p>
-                <p>或拖放图片到这里</p>
-                <input
-                  type="file"
-                  id="image-upload"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </UploadArea>
-            )}
-            
-            {previewUrl && (
-              <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setPreviewUrl(null);
-                    setImageFile(null);
-                  }}
-                  style={{ background: 'none', border: 'none', color: '#e60023', cursor: 'pointer' }}
-                >
-                  更换图片
-                </button>
-              </div>
-            )}
-          </FormColumn>
-          
-          <FormColumn>
-            <FormGroup>
-              <Label htmlFor="boardId">选择面板</Label>
-              {boards.length > 0 ? (
-                <Select
-                  id="boardId"
-                  name="boardId"
-                  value={boardId}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">-- 选择面板 --</option>
-                  {boards.map(board => (
-                    <option key={board.board_id} value={board.board_id}>
-                      {board.board_name}
-                    </option>
-                  ))}
-                </Select>
-              ) : (
-                <>
-                  <p>您还没有创建任何面板</p>
-                  <BoardLink href="/board/create">创建第一个面板</BoardLink>
-                </>
-              )}
-            </FormGroup>
-            
-            <FormGroup>
-              <Label htmlFor="tags">标签 (使用逗号分隔)</Label>
-              <Input
-                id="tags"
-                name="tags"
-                type="text"
-                value={tags}
-                onChange={handleChange}
-                placeholder="例如: 美食,甜点,巧克力"
-              />
-            </FormGroup>
-            
-            <FormGroup>
-              <Label htmlFor="description">描述 (可选)</Label>
-              <TextArea
-                id="description"
-                name="description"
-                value={description}
-                onChange={handleChange}
-                placeholder="添加一些关于这张图片的描述..."
-              />
-            </FormGroup>
-          </FormColumn>
-        </FormRow>
-        
-        <Button type="submit" disabled={loading || !imageFile || !boardId}>
-          {loading ? '创建中...' : '创建图钉'}
-        </Button>
-      </Form>
-    </CreatePinContainer>
-  );
 };
 
-export default CreatePin;
+export default function PinDetail() {
+  const { pinId } = useParams(); // 使用 useParams 获取 URL 参数
+  const navigate = useNavigate();
+  const [pin, setPin] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // 获取Pin详情
+  useEffect(() => {
+    const fetchPinData = async () => {
+      try {
+        setLoading(true);
+        const response = await getPin(pinId);
+        setPin(response.data);
+        console.log('Pin详情:', response.data);
+        setIsLiked(response.data.is_liked || false);
+        setLoading(false);
+      } catch (err) {
+        console.error('获取Pin详情失败:', err);
+        setError('获取Pin详情失败');
+        setLoading(false);
+      }
+    };
+
+    if (pinId) {
+      fetchPinData();
+    }
+  }, [pinId]);
+
+  // 获取评论
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const response = await getComments(pinId);
+        setComments(response.data);
+      } catch (err) {
+        console.error('获取评论失败:', err);
+      }
+    };
+
+    if (pinId) {
+      fetchComments();
+    }
+  }, [pinId]);
+
+  // 处理点赞
+  const handleLike = async () => {
+    try {
+      if (isLiked) {
+        await unlikePin(pinId);
+        setPin(prev => ({
+          ...prev,
+          likes_count: prev.likes_count - 1
+        }));
+      } else {
+        await likePin(pinId);
+        setPin(prev => ({
+          ...prev,
+          likes_count: prev.likes_count + 1
+        }));
+      }
+      setIsLiked(!isLiked);
+    } catch (err) {
+      console.error('点赞操作失败:', err);
+    }
+  };
+
+  // 处理收藏
+  const handleSave = () => {
+    // 收藏功能在提供的pinservice中没有对应的API，需要添加
+    setIsSaved(!isSaved);
+  };
+
+  // 提交评论
+  const handleCommentSubmit = async () => {
+    if (commentText.trim() && !submittingComment) {
+      try {
+        setSubmittingComment(true);
+        const response = await addComment(pinId, commentText);
+
+        // 添加新评论到列表
+        setComments(prev => [...prev, response.data]);
+
+        // 更新评论计数
+        setPin(prev => ({
+          ...prev,
+          comments_count: (prev.comments_count || 0) + 1
+        }));
+
+        setCommentText('');
+      } catch (err) {
+        console.error('添加评论失败:', err);
+      } finally {
+        setSubmittingComment(false);
+      }
+    }
+  };
+
+  const handleGoBack = () => {
+    // 在实际应用中，这里应该使用路由导航返回
+    window.history.back();
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      {/* 顶部导航栏 */}
+      <div className="sticky top-0 z-10 bg-white px-4 py-2 flex items-center justify-between shadow-sm">
+        <button onClick={handleGoBack} className="p-2 rounded-full hover:bg-gray-100">
+          <ArrowLeft size={24} />
+        </button>
+        <div className="flex space-x-2">
+          <button className="p-2 rounded-full hover:bg-gray-100">
+            <Share2 size={24} />
+          </button>
+          <button className="p-2 rounded-full hover:bg-gray-100">
+            <MoreHorizontal size={24} />
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-xl">加载中...</div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-xl text-red-500">{error}</div>
+        </div>
+      ) : pin ? (
+        <div className="flex flex-col md:flex-row max-w-6xl mx-auto w-full bg-white shadow-md">
+          {/* 图片部分 */}
+          <div className="md:w-2/3 bg-black flex items-center justify-center">
+            <img
+              src={pin.picture}
+              alt={pin.title}
+              className="max-h-screen object-contain"
+            />
+          </div>
+
+          {/* 详情部分 */}
+          <div className="md:w-1/3 flex flex-col">
+            {/* Pin信息 */}
+            <div className="p-4 border-b">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-2">
+                  <img
+                    src={pin.picture_detail?.image_url || pin.picture_detail?.image_file}
+                    alt={pin.user?.username || '用户'}
+                    className="w-10 h-10 rounded-full"
+                  />
+                  <span className="font-medium">{pin.user?.username || '未知用户'}</span>
+                </div>
+                <button
+                  className={`p-2 rounded-full ${isSaved ? 'bg-red-50 text-red-500' : 'hover:bg-gray-100'}`}
+                  onClick={handleSave}
+                >
+                  <BookmarkPlus size={24} />
+                </button>
+              </div>
+              <h1 className="text-xl font-bold mb-2">{pin.title}</h1>
+              <p className="text-gray-700 mb-4">{pin.description}</p>
+              {pin.tags && pin.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {pin.tags.map((tag, index) => (
+                    <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center space-x-4">
+                <button
+                  className="flex items-center space-x-1"
+                  onClick={handleLike}
+                >
+                  <Heart size={20} fill={isLiked ? "red" : "none"} color={isLiked ? "red" : "currentColor"} />
+                  <span>{pin.likes_count || 0}</span>
+                </button>
+                <div className="flex items-center space-x-1">
+                  <MessageCircle size={20} />
+                  <span>{pin.comments_count || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 评论区域 */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <h2 className="font-medium mb-4">评论</h2>
+              <div className="space-y-4">
+                {comments.length > 0 ? comments.map(comment => (
+                  <div key={comment.id} className="flex space-x-2">
+                    <img
+                      src={comment.user?.avatar_url || '/api/placeholder/40/40'}
+                      alt={comment.user?.username || '用户'}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium">{comment.user?.username || '未知用户'}</span>
+                        <span className="text-xs text-gray-500">{formatDateTime(comment.created_at)}</span>
+                      </div>
+                      <p className="text-gray-700">{comment.content}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-gray-500 text-center py-4">暂无评论</p>
+                )}
+              </div>
+            </div>
+
+            {/* 评论输入框 */}
+            <div className="p-4 border-t">
+              <div className="flex items-center space-x-2">
+                <img src={pin.current_user?.avatar_url || '/api/placeholder/40/40'} alt="当前用户" className="w-8 h-8 rounded-full" />
+                <input
+                  type="text"
+                  placeholder="添加评论..."
+                  className="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCommentSubmit();
+                    }
+                  }}
+                  disabled={submittingComment}
+                />
+                <button
+                  onClick={handleCommentSubmit}
+                  className={`p-2 text-blue-500 hover:bg-blue-50 rounded-full ${submittingComment ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={submittingComment}
+                >
+                  <Send size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
