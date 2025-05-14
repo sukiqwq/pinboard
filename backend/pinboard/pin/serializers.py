@@ -69,14 +69,14 @@ class RepinSerializer(serializers.ModelSerializer):
 
 class PinSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    picture = PictureSerializer() # Can be nested for creation, or just picture_id
-    likes_received = serializers.SerializerMethodField() # Example for count
+    picture = serializers.PrimaryKeyRelatedField(queryset=Picture.objects.all(), write_only=True)  # 创建时接受 picture_id
+    picture_detail = PictureSerializer(read_only=True, source='picture')  # 获取时返回完整的 Picture 对象
+    likes_received = serializers.SerializerMethodField()  # Example for count
     comments = CommentSerializer(many=True, read_only=True)
-    # repins = RepinSerializer(many=True, read_only=True, source='times_repinned') # If you want to show repins of this pin
 
     class Meta:
         model = Pin
-        fields = ['pin_id', 'user', 'board', 'picture', 'timestamp', 'likes_received', 'comments']
+        fields = ['pin_id', 'user', 'board', 'picture', 'picture_detail', 'timestamp', 'likes_received', 'comments', 'description']
         read_only_fields = ['user', 'timestamp']
 
     def get_likes_received(self, obj):

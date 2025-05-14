@@ -175,7 +175,7 @@ const BoardLink = styled.a`
 const CreatePin = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     boardId: '',
     tags: '',
@@ -186,16 +186,16 @@ const CreatePin = () => {
   const [boards, setBoards] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const { boardId, tags, description } = formData;
-  
+
   // 获取用户的面板列表
   useEffect(() => {
     const fetchBoards = async () => {
       try {
         const response = await getBoards(currentUser.user_id);
         setBoards(response.data);
-        
+
         // 如果有面板，默认选择第一个
         if (response.data.length > 0) {
           setFormData(prev => ({ ...prev, boardId: response.data[0].board_id }));
@@ -205,32 +205,32 @@ const CreatePin = () => {
         setError('无法加载您的面板，请稍后再试');
       }
     };
-    
+
     fetchBoards();
   }, [currentUser]);
-  
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-  
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    
+
     if (file) {
       // 验证文件类型
       if (!file.type.match('image.*')) {
         setError('请上传图片文件');
         return;
       }
-      
+
       // 文件大小限制 (10MB)
       if (file.size > 10 * 1024 * 1024) {
         setError('图片大小不能超过10MB');
         return;
       }
-      
+
       setImageFile(file);
-      
+
       // 创建预览
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -239,41 +239,41 @@ const CreatePin = () => {
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!imageFile) {
       setError('请选择一张图片上传');
       return;
     }
-    
+
     if (!boardId) {
       setError('请选择一个面板');
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      
+
       // 1. 上传图片
       const formData = new FormData();
-      formData.append('image', imageFile);
+      formData.append('image_file', imageFile);
       formData.append('tags', tags);
-      
+
       const pictureResponse = await uploadPicture(formData);
       const pictureId = pictureResponse.data.picture_id;
-      
+
       // 2. 创建Pin
       const pinData = {
-        board_id: boardId,
-        picture_id: pictureId,
+        board: boardId,
+        picture: pictureId,
         description
       };
-      
+
       const pinResponse = await createPin(pinData);
-      
+
       // 3. 重定向到新创建的图钉
       navigate(`/pin/${pinResponse.data.pin_id}`);
     } catch (err) {
@@ -283,13 +283,13 @@ const CreatePin = () => {
       setLoading(false);
     }
   };
-  
+
   return (
     <CreatePinContainer>
       <Title>创建新图钉</Title>
-      
+
       {error && <ErrorMessage>{error}</ErrorMessage>}
-      
+
       <Form onSubmit={handleSubmit}>
         <FormRow>
           <FormColumn>
@@ -312,11 +312,11 @@ const CreatePin = () => {
                 />
               </UploadArea>
             )}
-            
+
             {previewUrl && (
               <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setPreviewUrl(null);
                     setImageFile(null);
@@ -328,7 +328,7 @@ const CreatePin = () => {
               </div>
             )}
           </FormColumn>
-          
+
           <FormColumn>
             <FormGroup>
               <Label htmlFor="boardId">选择面板</Label>
@@ -354,7 +354,7 @@ const CreatePin = () => {
                 </>
               )}
             </FormGroup>
-            
+
             <FormGroup>
               <Label htmlFor="tags">标签 (使用逗号分隔)</Label>
               <Input
@@ -366,7 +366,7 @@ const CreatePin = () => {
                 placeholder="例如: 美食,甜点,巧克力"
               />
             </FormGroup>
-            
+
             <FormGroup>
               <Label htmlFor="description">描述 (可选)</Label>
               <TextArea
@@ -379,7 +379,7 @@ const CreatePin = () => {
             </FormGroup>
           </FormColumn>
         </FormRow>
-        
+
         <Button type="submit" disabled={loading || !imageFile || !boardId}>
           {loading ? '创建中...' : '创建图钉'}
         </Button>

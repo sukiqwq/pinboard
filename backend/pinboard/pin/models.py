@@ -76,7 +76,8 @@ class Pin(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='pins', on_delete=models.CASCADE)
     board = models.ForeignKey(Board, related_name='pins', on_delete=models.CASCADE)
     picture = models.ForeignKey(Picture, related_name='pinned_on', on_delete=models.CASCADE) # [cite: 3]
-    timestamp = models.DateTimeField(auto_now_add=True) # [cite: 32]
+    timestamp = models.DateTimeField(auto_now_add=True) 
+    description = models.TextField(blank=True, null=True) 
 
     def __str__(self):
         return f"Pin {self.pin_id} by {self.user.username} on {self.board.board_name}"

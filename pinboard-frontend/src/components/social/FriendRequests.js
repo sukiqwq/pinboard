@@ -142,25 +142,25 @@ const formatDate = (dateString) => {
 };
 
 const FriendRequests = () => {
-  const { currentUser } = useAuth();
-  
+  // const { currentUser } = useAuth();
+
   const [activeTab, setActiveTab] = useState('received');
   const [receivedRequests, setReceivedRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
     const fetchFriendRequests = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await getFriendRequests();
-        
+
         setReceivedRequests(response.data.received || []);
         setSentRequests(response.data.sent || []);
-        
+
         setLoading(false);
       } catch (err) {
         console.error('获取好友请求失败:', err);
@@ -168,63 +168,63 @@ const FriendRequests = () => {
         setLoading(false);
       }
     };
-    
+
     fetchFriendRequests();
   }, []);
-  
+
   const handleAcceptRequest = async (requestId) => {
     try {
       await acceptFriendRequest(requestId);
-      
+
       // 更新列表，移除已接受的请求
-      setReceivedRequests(prevRequests => 
+      setReceivedRequests(prevRequests =>
         prevRequests.filter(req => req.request_id !== requestId)
       );
     } catch (err) {
       console.error('接受好友请求失败:', err);
     }
   };
-  
+
   const handleRejectRequest = async (requestId) => {
     try {
       await rejectFriendRequest(requestId);
-      
+
       // 更新列表，移除已拒绝的请求
-      setReceivedRequests(prevRequests => 
+      setReceivedRequests(prevRequests =>
         prevRequests.filter(req => req.request_id !== requestId)
       );
     } catch (err) {
       console.error('拒绝好友请求失败:', err);
     }
   };
-  
+
   if (loading) {
     return <Spinner />;
   }
-  
+
   if (error) {
     return <div>Error: {error}</div>;
   }
-  
+
   return (
     <Container>
       <Title>好友请求</Title>
-      
+
       <Tabs>
-        <Tab 
-          active={activeTab === 'received'} 
+        <Tab
+          active={activeTab === 'received'}
           onClick={() => setActiveTab('received')}
         >
           收到的请求 ({receivedRequests.length})
         </Tab>
-        <Tab 
-          active={activeTab === 'sent'} 
+        <Tab
+          active={activeTab === 'sent'}
           onClick={() => setActiveTab('sent')}
         >
           发出的请求 ({sentRequests.length})
         </Tab>
       </Tabs>
-      
+
       {activeTab === 'received' && (
         <RequestList>
           {receivedRequests.length > 0 ? (
@@ -238,13 +238,13 @@ const FriendRequests = () => {
                   <RequestTime>请求时间: {formatDate(request.request_time)}</RequestTime>
                 </UserInfo>
                 <Actions>
-                  <ActionButton 
-                    accept 
+                  <ActionButton
+                    accept
                     onClick={() => handleAcceptRequest(request.request_id)}
                   >
                     接受
                   </ActionButton>
-                  <ActionButton 
+                  <ActionButton
                     onClick={() => handleRejectRequest(request.request_id)}
                   >
                     拒绝
@@ -259,7 +259,7 @@ const FriendRequests = () => {
           )}
         </RequestList>
       )}
-      
+
       {activeTab === 'sent' && (
         <RequestList>
           {sentRequests.length > 0 ? (
@@ -275,9 +275,9 @@ const FriendRequests = () => {
                     <br />
                     状态: {
                       request.status === 'pending' ? '等待回应' :
-                      request.status === 'accepted' ? '已接受' :
-                      request.status === 'rejected' ? '已拒绝' : 
-                      request.status
+                        request.status === 'accepted' ? '已接受' :
+                          request.status === 'rejected' ? '已拒绝' :
+                            request.status
                     }
                   </RequestTime>
                 </UserInfo>
