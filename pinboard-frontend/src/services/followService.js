@@ -44,7 +44,7 @@ export const unfollowBoard = async (boardId) => {
 
 // 检查面板关注状态
 export const checkBoardFollowStatus = async (boardId) => {
-  return await api.get(`/boards/${boardId}/follow-status`);
+  return await api.get(`/boards/${boardId}/follow_status`);
 };
 
 // 添加面板到关注流

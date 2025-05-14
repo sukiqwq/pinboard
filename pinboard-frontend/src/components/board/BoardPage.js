@@ -140,35 +140,35 @@ const BoardPage = () => {
   const { boardId } = useParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  
+
   const [board, setBoard] = useState(null);
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [following, setFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
-  
+
   useEffect(() => {
     const fetchBoardData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // 获取面板信息
         const boardResponse = await getBoard(boardId);
         setBoard(boardResponse.data);
         setFollowerCount(boardResponse.data.follower_count || 0);
-        
+
         // 获取面板中的图钉
         const pinsResponse = await getBoardPins(boardId);
         setPins(pinsResponse.data);
-        
+
         // 如果已登录，检查是否正在关注该面板
         if (currentUser) {
           const followResponse = await checkBoardFollowStatus(boardId);
           setFollowing(followResponse.data.following);
         }
-        
+
         setLoading(false);
       } catch (err) {
         console.error('获取面板数据失败:', err);
@@ -176,16 +176,16 @@ const BoardPage = () => {
         setLoading(false);
       }
     };
-    
+
     fetchBoardData();
   }, [boardId, currentUser]);
-  
+
   const handleFollowToggle = async () => {
     if (!currentUser) {
       navigate('/login');
       return;
     }
-    
+
     try {
       if (following) {
         await unfollowBoard(boardId);
@@ -200,10 +200,10 @@ const BoardPage = () => {
       console.error('关注操作失败:', err);
     }
   };
-  
+
   const handleDeleteBoard = async () => {
-    if (!currentUser || (board && board.owner_user_id !== currentUser.user_id)) return;
-    
+    if (!currentUser || (board && board.owner.id !== currentUser.user_id)) return;
+
     if (window.confirm('确定要删除这个面板吗？此操作不可撤销，所有图钉将被移除。')) {
       try {
         await deleteBoard(boardId);
@@ -213,23 +213,23 @@ const BoardPage = () => {
       }
     }
   };
-  
+
   if (loading) {
     return <Spinner />;
   }
-  
+
   if (error || !board) {
     return <div>Error: {error || '找不到该面板'}</div>;
   }
-  
-  const isOwner = currentUser && currentUser.user_id === board.owner_user_id;
-  
+
+  const isOwner = currentUser && currentUser.user_id === board.owner.id;
+
   return (
     <BoardContainer>
       <BoardHeader>
         <BoardTitle>
           <Title>{board.board_name}</Title>
-          
+
           <ActionButtons>
             {isOwner ? (
               <>
@@ -247,8 +247,8 @@ const BoardPage = () => {
                 </Button>
               </>
             ) : currentUser && (
-              <FollowButton 
-                following={following} 
+              <FollowButton
+                following={following}
                 onClick={handleFollowToggle}
               >
                 {following ? (
@@ -261,7 +261,7 @@ const BoardPage = () => {
                 ) : '关注'}
               </FollowButton>
             )}
-            
+
             {isOwner && (
               <Button primary as={Link} to={`/pin/create?boardId=${boardId}`}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -272,33 +272,33 @@ const BoardPage = () => {
             )}
           </ActionButtons>
         </BoardTitle>
-        
+
         {board.descriptor && (
           <Description>{board.descriptor}</Description>
         )}
-        
+
         <UserInfo>
           <Avatar>{board.owner.username.charAt(0).toUpperCase()}</Avatar>
           <Username to={`/user/${board.owner.username}`}>{board.owner.username}</Username>
         </UserInfo>
-        
+
         <Stats>
           <StatItem>{pins.length} 个图钉</StatItem>
           <StatItem>{followerCount} 个关注者</StatItem>
         </Stats>
       </BoardHeader>
-      
+
       {pins.length > 0 ? (
         <PinGrid pins={pins} />
       ) : (
         <EmptyState>
           <EmptyStateTitle>该面板还没有任何图钉</EmptyStateTitle>
           <EmptyStateMessage>
-            {isOwner 
-              ? '开始添加图钉到这个面板，收集和整理您喜欢的内容！' 
+            {isOwner
+              ? '开始添加图钉到这个面板，收集和整理您喜欢的内容！'
               : '该面板目前为空，稍后再来查看。'}
           </EmptyStateMessage>
-          
+
           {isOwner && (
             <Button primary as={Link} to={`/pin/create?boardId=${boardId}`}>
               添加第一个图钉

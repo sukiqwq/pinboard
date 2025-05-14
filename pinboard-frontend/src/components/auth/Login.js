@@ -18,7 +18,7 @@ const LoginCard = styled.div`
   background-color: white;
   border-radius: 16px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 100%;
+  width: 100%; 
   max-width: 400px;
   padding: 2rem;
 `;
@@ -95,28 +95,30 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const from = location.state?.from?.pathname || '/';
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!username || !password) {
       setError('请输入用户名和密码');
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      
-      const response = await loginService({ username, password });
-      
-      login(response.user, response.token);
+
+      // 调用 loginService 并获取适配后的数据
+      const { user, token } = await loginService({ username, password });
+
+      // 调用 AuthContext 的 login 方法
+      login(user, token);
       navigate(from, { replace: true });
     } catch (err) {
       setError(
@@ -126,14 +128,14 @@ const Login = () => {
       setLoading(false);
     }
   };
-  
+
   return (
     <LoginContainer>
       <LoginCard>
         <Title>登录到 Pinboard</Title>
-        
+
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        
+
         <Form onSubmit={handleSubmit}>
           <FormGroup>
             <Label htmlFor="username">用户名</Label>
@@ -146,7 +148,7 @@ const Login = () => {
               required
             />
           </FormGroup>
-          
+
           <FormGroup>
             <Label htmlFor="password">密码</Label>
             <Input
@@ -158,12 +160,12 @@ const Login = () => {
               required
             />
           </FormGroup>
-          
+
           <Button type="submit" disabled={loading}>
             {loading ? '登录中...' : '登录'}
           </Button>
         </Form>
-        
+
         <LinkText>
           还没有账号？ <Link to="/register">立即注册</Link>
         </LinkText>

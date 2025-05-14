@@ -99,9 +99,8 @@ const ErrorMessage = styled.div`
 `;
 
 const CreateBoard = () => {
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     boardName: '',
     description: '',
@@ -109,7 +108,7 @@ const CreateBoard = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -117,27 +116,27 @@ const CreateBoard = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.boardName.trim()) {
       setError('请输入面板名称');
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      
+
       const boardData = {
-        board_name: formData.boardName,
+        board_name: formData.boardName, // 确保字段名与后端一致
         descriptor: formData.description,
-        allow_friends_comment: formData.allowFriendsComment
+        allow_friends_comment: formData.allowFriendsComment,
       };
-      
+
       const response = await createBoard(boardData);
-      
+      console.log('创建面板响应:', response.data);
       navigate(`/board/${response.data.board_id}`);
     } catch (err) {
       console.error('创建面板失败:', err);
@@ -146,13 +145,13 @@ const CreateBoard = () => {
       setLoading(false);
     }
   };
-  
+
   return (
     <Container>
       <Title>创建新面板</Title>
-      
+
       {error && <ErrorMessage>{error}</ErrorMessage>}
-      
+
       <Form onSubmit={handleSubmit}>
         <FormGroup>
           <Label htmlFor="boardName">面板名称</Label>
@@ -166,7 +165,7 @@ const CreateBoard = () => {
             required
           />
         </FormGroup>
-        
+
         <FormGroup>
           <Label htmlFor="description">描述 (可选)</Label>
           <TextArea
@@ -177,7 +176,7 @@ const CreateBoard = () => {
             placeholder="描述这个面板的内容..."
           />
         </FormGroup>
-        
+
         <FormGroup>
           <CheckboxGroup>
             <Checkbox
@@ -192,7 +191,7 @@ const CreateBoard = () => {
             </Label>
           </CheckboxGroup>
         </FormGroup>
-        
+
         <Button type="submit" disabled={loading}>
           {loading ? '创建中...' : '创建面板'}
         </Button>
