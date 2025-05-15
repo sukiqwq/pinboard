@@ -112,7 +112,7 @@ const CreateBoard = () => {
               onChange={handleChange}
             />
             <Label htmlFor="allowFriendsComment" style={{ marginBottom: 0 }}>
-              Allow friends to comment
+              Only allow friends to comment (restrict to friends)
             </Label>
           </CheckboxGroup>
         </FormGroup>
