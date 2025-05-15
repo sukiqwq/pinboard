@@ -115,6 +115,27 @@ class BoardViewSet(viewsets.ModelViewSet):
         except Board.DoesNotExist:
             return Response({"error": "Board not found"}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=True, methods=['delete'], url_path='unfollow', permission_classes=[permissions.IsAuthenticated])
+    def unfollow_board(self, request, pk=None):
+        try:
+            board = self.get_object()  # 获取面板对象
+            user = request.user
+            follow_streams = FollowStream.objects.filter(user=user)
+            removed = False
+            for stream in follow_streams:
+                if board in stream.boards.all():
+                    stream.boards.remove(board)
+                    removed = True
+            if removed:
+                return Response({"message": "Board unfollowed successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "You were not following this board"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error unfollowing board: {str(e)}")
+            return Response(
+                {"error": "Failed to unfollow board. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class PictureViewSet(viewsets.ModelViewSet):
     queryset = Picture.objects.all()
@@ -375,6 +396,86 @@ class FollowStreamViewSet(viewsets.ModelViewSet):
         serializer = PinSerializer(pins_in_stream, many=True, context={'request': request})
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get', 'post'], url_path='boards')
+    def handle_boards(self, request, pk=None):
+        stream = self.get_object()
+        # if method is GET, return the content list as response
+        if request.method == 'GET':
+            # 获取面板列表
+            boards = stream.boards.all()
+            serializer = BoardSerializer(boards, many=True)
+            return Response(serializer.data)
+        # else add board in stream and return the response
+        elif request.method == 'POST':
+            # 添加面板
+            try:
+                board_id = request.data.get('board_id')
+                if not board_id:
+                    return Response({"error": "board_id is required"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                try:
+                    board = Board.objects.get(board_id=board_id)
+                except Board.DoesNotExist:
+                    return Response({"error": "Board not found"},
+                                    status=status.HTTP_404_NOT_FOUND)
+
+                if board in stream.boards.all():
+                    return Response({"message": "Board is already in this stream"},
+                                    status=status.HTTP_200_OK)
+
+                stream.boards.add(board)
+                response_data = {
+                    "message": "Board added to stream successfully",
+                    "stream_id": stream.stream_id,
+                    "stream_name": stream.stream_name,
+                    "board": {
+                        "board_id": board.board_id,
+                        "board_name": board.board_name
+                    }
+                }
+                return Response(response_data, status=status.HTTP_200_OK)
+            except Exception as e:
+                print(f"Error adding board to stream: {str(e)}")
+                return Response({
+                    "error": "Failed to add board to stream. Please try again later."
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['delete'], url_path='boards/(?P<board_id>[^/.]+)')
+    def remove_board(self, request, pk=None, board_id=None):
+        try:
+            stream = self.get_object()
+            # 验证用户权限 - 只有流的所有者可以移除面板
+            if stream.user != request.user:
+                return Response(
+                    {"error": "You do not have permission to modify this stream"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            try:
+                board = Board.objects.get(board_id=board_id)
+            except Board.DoesNotExist:
+                return Response(
+                    {"error": "Board not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            # 检查面板是否在流中
+            if board not in stream.boards.all():
+                return Response(
+                    {"error": "Board is not in this stream"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # 从流中移除面板
+            stream.boards.remove(board)
+            return Response(
+                {"message": "Board removed from stream successfully"},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            # 记录错误并返回
+            print(f"Error removing board from stream: {str(e)}")
+            return Response(
+                {"error": "Failed to remove board from stream"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class LikeViewSet(viewsets.ModelViewSet):
     queryset = Like.objects.all()

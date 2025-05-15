@@ -6,6 +6,7 @@ import { getBoardPins } from '../../services/pinService';
 import { followBoard, unfollowBoard, checkBoardFollowStatus } from '../../services/followService';
 import PinGrid from '../pin/PinGrid';
 import Spinner from '../common/Spinner';
+import FollowStreamModal from '../followstream/FollowStreamModal';
 import {
   BoardContainer,
   BoardHeader,
@@ -36,6 +37,7 @@ const BoardPage = () => {
   const [error, setError] = useState(null);
   const [following, setFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
+  const [showFollowModal, setShowFollowModal] = useState(false);
 
   useEffect(() => {
     const fetchBoardData = async () => {
@@ -43,16 +45,16 @@ const BoardPage = () => {
         setLoading(true);
         setError(null);
 
-        // 获取面板信息 / Fetch board data
+        // Get board information
         const boardResponse = await getBoard(boardId);
         setBoard(boardResponse.data);
         setFollowerCount(boardResponse.data.follower_count || 0);
 
-        // 获取面板中的图钉 / Fetch pins in the board
+        // Get pins in this board
         const pinsResponse = await getBoardPins(boardId);
         setPins(pinsResponse.data);
 
-        // 如果已登录，检查是否正在关注该面板 / Check follow status if logged in
+        // Check follow status if user is logged in
         if (currentUser) {
           const followResponse = await checkBoardFollowStatus(boardId);
           setFollowing(followResponse.data.following);
@@ -60,7 +62,7 @@ const BoardPage = () => {
 
         setLoading(false);
       } catch (err) {
-        console.error('获取面板数据失败:', err); // Failed to fetch board
+        console.error('Failed to fetch board data:', err);
         setError('Failed to load board. Please try again later.');
         setLoading(false);
       }
@@ -69,37 +71,45 @@ const BoardPage = () => {
     fetchBoardData();
   }, [boardId, currentUser]);
 
-  const handleFollowToggle = async () => {
+  const handleFollowToggle = () => {
     if (!currentUser) {
       navigate('/login');
       return;
     }
 
-    try {
-      if (following) {
-        await unfollowBoard(boardId);
-        setFollowing(false);
-        setFollowerCount(prevCount => Math.max(0, prevCount - 1));
-      } else {
-        await followBoard(boardId);
-        setFollowing(true);
-        setFollowerCount(prevCount => prevCount + 1);
-      }
-    } catch (err) {
-      console.error('关注操作失败:', err); // Follow/unfollow failed
+    if (following) {
+      // Unfollow - this will remove the board from all streams
+      handleUnfollowBoard();
+    } else {
+      // Follow - open modal to select or create a stream
+      setShowFollowModal(true);
     }
+  };
+
+  const handleUnfollowBoard = async () => {
+    try {
+      await unfollowBoard(boardId);
+      setFollowing(false);
+      setFollowerCount(prevCount => Math.max(0, prevCount - 1));
+    } catch (err) {
+      console.error('Failed to unfollow board:', err);
+    }
+  };
+
+  const handleFollowSuccess = () => {
+    setFollowing(true);
+    setFollowerCount(prevCount => prevCount + 1);
   };
 
   const handleDeleteBoard = async () => {
     if (!currentUser || (board && board.owner.id !== currentUser.user_id)) return;
 
-    // 确认删除提示 / Confirm deletion prompt
     if (window.confirm('Are you sure you want to delete this board? This action is irreversible, and all pins will be removed.')) {
       try {
         await deleteBoard(boardId);
         navigate(`/user/${currentUser.username}`);
       } catch (err) {
-        console.error('Deletion failed:', err); // Deletion failed
+        console.error('Deletion failed:', err);
       }
     }
   };
@@ -124,14 +134,12 @@ const BoardPage = () => {
             {isOwner ? (
               <>
                 <Button as={Link} to={`/board/${boardId}/edit`}>
-                  {/* 编辑按钮 / Edit Button */}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor" />
                   </svg>
                   Edit
                 </Button>
                 <Button onClick={handleDeleteBoard}>
-                  {/* 删除按钮 / Delete Button */}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor" />
                   </svg>
@@ -156,7 +164,6 @@ const BoardPage = () => {
 
             {isOwner && (
               <Button primary as={Link} to={`/pin/create?boardId=${boardId}`}>
-                {/* 添加图钉按钮 / Add pin button */}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
                 </svg>
@@ -199,6 +206,14 @@ const BoardPage = () => {
           )}
         </EmptyState>
       )}
+
+      {/* Follow Stream Modal */}
+      <FollowStreamModal
+        isOpen={showFollowModal}
+        onClose={() => setShowFollowModal(false)}
+        boardId={boardId}
+        onFollowSuccess={handleFollowSuccess}
+      />
     </BoardContainer>
   );
 };

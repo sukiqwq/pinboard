@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useBoards } from '../../context/BoardContext'; // Import useBoards hook
+import { useBoards } from '../../context/BoardContext';
 
 // Import styled components
 import {
@@ -23,7 +23,7 @@ import {
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
-  const { boards: userBoards, loading: boardsLoading } = useBoards(); // Use boards from context
+  const { boards: userBoards, loading: boardsLoading } = useBoards();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -93,6 +93,7 @@ const Navbar = () => {
           {currentUser ? (
             <>
               <NavLink to="/pin/create">Create Pin</NavLink>
+              <NavLink to="/follow-streams">My Streams</NavLink> {/* Add new link */}
               
               <UserMenu ref={dropdownRef}>
                 <UserAvatar onClick={toggleDropdown}>
@@ -144,6 +145,7 @@ const Navbar = () => {
                     </SubMenuContainer>
                     
                     <MenuItem to="/friend-requests">Friend Requests</MenuItem>
+                    <MenuItem to="/follow-streams">Follow Streams</MenuItem> {/* Add menu item */}
                     <MenuButton onClick={handleLogout}>
                       Log Out
                     </MenuButton>

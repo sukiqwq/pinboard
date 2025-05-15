@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { BoardProvider } from './context/BoardContext'; // Import BoardProvider
+import { BoardProvider } from './context/BoardContext';
 
 // Import page components
 import HomePage from './components/HomePage';
@@ -15,10 +15,10 @@ import PinDetail from './components/pin/PinDetail';
 import CreatePin from './components/pin/CreatePin';
 import SearchResults from './components/search/SearchResults';
 import FriendRequests from './components/social/FriendRequests';
+import FollowStreamsPage from './components/followstream/FollowStreamsPage'; // Import the new component
 import NotFound from './components/common/NotFound';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/Layout';
-// Import edit profile component
 import EditProfile from './components/common/EditProfile';
 
 const App = () => {
@@ -29,7 +29,7 @@ const App = () => {
   }
 
   return (
-    <BoardProvider> {/* Wrap entire app with BoardProvider */}
+    <BoardProvider>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
@@ -49,6 +49,7 @@ const App = () => {
             <Route path="/board/:boardId/edit" element={<EditBoard />} />
             <Route path="/pin/create" element={<CreatePin />} />
             <Route path="/friend-requests" element={<FriendRequests />} />
+            <Route path="/follow-streams" element={<FollowStreamsPage />} />
             <Route path="/profile/edit" element={<EditProfile />} />
           </Route>
           
