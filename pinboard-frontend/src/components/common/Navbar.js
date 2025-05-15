@@ -93,8 +93,7 @@ const Navbar = () => {
           {currentUser ? (
             <>
               <NavLink to="/pin/create">Create Pin</NavLink>
-              <NavLink to="/follow-streams">My Streams</NavLink> {/* Add new link */}
-              
+                {/*<NavLink to="/follow-streams">My Streams</NavLink>*/}
               <UserMenu ref={dropdownRef}>
                 <UserAvatar onClick={toggleDropdown}>
                   {currentUser.username.charAt(0).toUpperCase()}
@@ -103,7 +102,7 @@ const Navbar = () => {
                 {showDropdown && (
                   <DropdownMenu>
                     <MenuItem to={`/user/${currentUser.username}`}>Profile</MenuItem>
-                    <MenuItem to="/profile/edit">Edit Profile</MenuItem>
+                    {/*<MenuItem to="/profile/edit">Edit Profile</MenuItem>*/}
                     
                     {/* My Boards with submenu */}
                     <SubMenuContainer className="has-submenu">
