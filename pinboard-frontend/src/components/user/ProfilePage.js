@@ -1,218 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getUserProfile } from '../../services/userService';
+import { getUserProfile, getCurrentUserProfile } from '../../services/userService';
 import { getBoards } from '../../services/boardService';
+import { getUserPins } from '../../services/pinService';
 import { sendFriendRequest, checkFriendshipStatus } from '../../services/socialService';
 import Spinner from '../common/Spinner';
 import PinGrid from '../pin/PinGrid';
-import styled from 'styled-components';
-
-const ProfileContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-`;
-
-const ProfileHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding: 2rem;
-  background-color: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
-  @media (min-width: 768px) {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-`;
-
-const AvatarContainer = styled.div`
-  margin-bottom: 1.5rem;
-  
-  @media (min-width: 768px) {
-    margin-right: 2rem;
-    margin-bottom: 0;
-  }
-`;
-
-const Avatar = styled.div`
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background-color: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  font-weight: bold;
-  color: #666;
-`;
-
-const ProfileInfo = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-  
-  @media (min-width: 768px) {
-    text-align: left;
-  }
-`;
-
-const Username = styled.h1`
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-`;
-
-const Bio = styled.p`
-  color: #666;
-  margin-bottom: 1.5rem;
-`;
-
-const Stats = styled.div`
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  justify-content: center;
-  
-  @media (min-width: 768px) {
-    justify-content: flex-start;
-  }
-`;
-
-const StatItem = styled.div`
-  text-align: center;
-`;
-
-const StatValue = styled.div`
-  font-size: 1.2rem;
-  font-weight: bold;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.9rem;
-  color: #666;
-`;
-
-const ActionButton = styled.button`
-  background-color: ${props => props.primary ? '#e60023' : '#f0f0f0'};
-  color: ${props => props.primary ? 'white' : '#333'};
-  border: none;
-  border-radius: 24px;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  align-self: center;
-  
-  &:hover {
-    background-color: ${props => props.primary ? '#ad081b' : '#ddd'};
-  }
-  
-  &:disabled {
-    background-color: #ddd;
-    cursor: not-allowed;
-  }
-  
-  @media (min-width: 768px) {
-    align-self: flex-start;
-  }
-`;
-
-const TabsContainer = styled.div`
-  display: flex;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 2rem;
-`;
-
-const Tab = styled.button`
-  padding: 1rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 3px solid ${props => props.active ? '#e60023' : 'transparent'};
-  color: ${props => props.active ? '#e60023' : '#666'};
-  font-weight: ${props => props.active ? 'bold' : 'normal'};
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    color: #e60023;
-  }
-`;
-
-const BoardsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.5rem;
-`;
-
-const BoardCard = styled(Link)`
-  background-color: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s;
-  
-  &:hover {
-    transform: translateY(-5px);
-  }
-`;
-
-const BoardThumbnail = styled.div`
-  height: 150px;
-  background-color: #f5f5f5;
-  position: relative;
-  overflow: hidden;
-  
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-`;
-
-const BoardInfo = styled.div`
-  padding: 1rem;
-`;
-
-const BoardName = styled.h3`
-  font-size: 1.1rem;
-  margin-bottom: 0.25rem;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-`;
-
-const BoardStats = styled.div`
-  font-size: 0.9rem;
-  color: #666;
-`;
-
-const EmptyState = styled.div`
-  padding: 3rem;
-  text-align: center;
-  background-color: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const EmptyStateTitle = styled.h3`
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-`;
-
-const EmptyStateMessage = styled.p`
-  color: #666;
-  margin-bottom: 1.5rem;
-`;
+// Import styles from separate file
+import {
+  ProfileContainer,
+  ContentWrapper,
+  ProfileHeader,
+  AvatarContainer,
+  Avatar,
+  ProfileInfo,
+  Username,
+  Bio,
+  Stats,
+  StatItem,
+  StatValue,
+  StatLabel,
+  ActionButton,
+  TabsContainer,
+  TabContent,
+  Tab,
+  BoardsGrid,
+  PinGridWrapper,
+  BoardCard,
+  BoardThumbnail,
+  BoardInfo,
+  BoardName,
+  BoardStats,
+  EmptyState,
+  EmptyStateTitle,
+  EmptyStateMessage,
+  ErrorContainer,
+  ErrorTitle,
+  ErrorText
+} from './ProfilePage.styles';
 
 const ProfilePage = () => {
   const { username } = useParams();
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   
   const [profile, setProfile] = useState(null);
   const [boards, setBoards] = useState([]);
@@ -222,63 +53,182 @@ const ProfilePage = () => {
   const [error, setError] = useState(null);
   const [friendshipStatus, setFriendshipStatus] = useState(null);
   const [friendRequestSent, setFriendRequestSent] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [pinsLoaded, setPinsLoaded] = useState(false);
   
   useEffect(() => {
-    const fetchProfileData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // 获取用户资料
-        const profileResponse = await getUserProfile(username);
-        setProfile(profileResponse.data);
-        
-        // 获取用户的面板
-        const boardsResponse = await getBoards(profileResponse.data.user_id);
-        setBoards(boardsResponse.data);
-        
-        // 如果已登录，检查好友关系状态
-        if (currentUser && currentUser.user_id !== profileResponse.data.user_id) {
-          const statusResponse = await checkFriendshipStatus(profileResponse.data.user_id);
-          setFriendshipStatus(statusResponse.data.status);
-        }
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('获取用户资料失败:', err);
-        setError('获取用户资料失败，请稍后再试');
-        setLoading(false);
-      }
-    };
-    
     fetchProfileData();
   }, [username, currentUser]);
   
-  const handleSendFriendRequest = async () => {
-    if (!currentUser) return;
-    
+  useEffect(() => {
+    if (profile && currentUser) {
+      const profileUserId = profile.user_id || profile.id;
+      const currentUserId = currentUser.user_id || currentUser.id;
+      setIsOwnProfile(
+        currentUser.username === username && 
+        currentUserId === profileUserId
+      );
+    } else {
+      setIsOwnProfile(false);
+    }
+  }, [profile, currentUser, username]);
+
+  useEffect(() => {
+    console.log('pins state updated:', pins);
+  }, [pins]);
+
+  const fetchProfileData = async () => {
     try {
-      await sendFriendRequest(profile.user_id);
-      setFriendshipStatus('pending');
-      setFriendRequestSent(true);
+      setLoading(true);
+      setError(null);
+      
+      let profileResponse;
+      
+      if (currentUser && username === currentUser.username) {
+        profileResponse = await getCurrentUserProfile();
+      } else {
+        try {
+          profileResponse = await getUserProfile(username);
+        } catch (err) {
+          if (err.response && err.response.status === 404) {
+            setError(`User "${username}" does not exist`);
+          } else {
+            setError(`Unable to view user "${username}" profile`);
+          }
+          setLoading(false);
+          return;
+        }
+      }
+      
+      setProfile(profileResponse.data);
+      
+      const userId = profileResponse.data.user_id || profileResponse.data.id;
+      console.log('User profile data:', profileResponse.data);
+      console.log('Extracted user ID:', userId);
+      
+      try {
+        const boardsResponse = await getBoards(userId);
+        console.log('Boards data:', boardsResponse.data);
+        setBoards(boardsResponse.data);
+      } catch (err) {
+        console.error('Failed to fetch boards:', err);
+        setBoards([]);
+      }
+      
+      try {
+        console.log(`Fetching pins for user ${userId}`);
+        const pinsResponse = await getUserPins(userId);
+        console.log('Pins API response:', pinsResponse);
+        console.log('Pins data:', pinsResponse.data);
+        setPins(Array.isArray(pinsResponse.data) ? pinsResponse.data : []);
+        setPinsLoaded(true);
+      } catch (err) {
+        console.error('Failed to fetch pins:', err);
+        console.error('Error details:', err.response?.data || err.message);
+        setPins([]);
+      }
+      
+      if (currentUser && currentUser.username !== username) {
+        try {
+          const statusResponse = await checkFriendshipStatus(userId);
+          setFriendshipStatus(statusResponse.data.status);
+        } catch (err) {
+          console.error('Failed to check friendship status:', err);
+        }
+      }
+      
+      setLoading(false);
     } catch (err) {
-      console.error('发送好友请求失败:', err);
+      console.error('Failed to fetch user profile:', err);
+      
+      if (err.response) {
+        if (err.response.status === 404) {
+          setError(`User "${username}" does not exist`);
+        } else if (err.response.status === 403) {
+          setError("You don't have permission to view this profile");
+        } else {
+          setError('Failed to load user profile. Please try again later.');
+        }
+      } else {
+        setError('Failed to connect to server. Please check your network connection.');
+      }
+      
+      setLoading(false);
     }
   };
   
   const handleTabChange = (tab) => {
+    console.log('Switching to tab:', tab);
     setActiveTab(tab);
+    
+    if (tab === 'pins' && !pinsLoaded && profile) {
+      const userId = profile.user_id || profile.id;
+      console.log(`Tab switched to pins, fetching pins for user ${userId}`);
+      
+      const loadPins = async () => {
+        try {
+          const pinsResponse = await getUserPins(userId);
+          console.log('Pins API response after tab switch:', pinsResponse);
+          setPins(Array.isArray(pinsResponse.data) ? pinsResponse.data : []);
+          setPinsLoaded(true);
+        } catch (err) {
+          console.error('Failed to fetch pins after tab switch:', err);
+          setPins([]);
+        }
+      };
+      
+      loadPins();
+    }
+  };
+  
+  const handleSendFriendRequest = async () => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      await sendFriendRequest(profile.user_id || profile.id);
+      setFriendshipStatus('pending');
+      setFriendRequestSent(true);
+    } catch (err) {
+      console.error('Failed to send friend request:', err);
+    }
   };
   
   if (loading) {
-    return <Spinner />;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <Spinner />
+      </div>
+    );
   }
   
-  if (error || !profile) {
-    return <div>Error: {error || '找不到该用户'}</div>;
+  if (error) {
+    return (
+      <ErrorContainer>
+        <ErrorTitle>Error</ErrorTitle>
+        <ErrorText>{error}</ErrorText>
+        <ActionButton onClick={() => navigate(-1)}>
+          Go Back
+        </ActionButton>
+      </ErrorContainer>
+    );
   }
   
-  const isOwnProfile = currentUser && currentUser.user_id === profile.user_id;
+  if (!profile) {
+    return (
+      <ErrorContainer>
+        <ErrorTitle>User Not Found</ErrorTitle>
+        <ActionButton onClick={() => navigate('/')}>
+          Return to Home
+        </ActionButton>
+      </ErrorContainer>
+    );
+  }
+  
+  console.log('Pre-render pins data check:', pins);
+  console.log('Rendering ProfilePage, activeTab:', activeTab);
   
   return (
     <ProfileContainer>
@@ -297,133 +247,142 @@ const ProfilePage = () => {
           <Stats>
             <StatItem>
               <StatValue>{boards.length}</StatValue>
-              <StatLabel>面板</StatLabel>
+              <StatLabel>Boards</StatLabel>
             </StatItem>
             <StatItem>
-              <StatValue>{profile.pin_count || 0}</StatValue>
-              <StatLabel>图钉</StatLabel>
+              <StatValue>{pins.length || profile.pin_count || 0}</StatValue>
+              <StatLabel>Pins</StatLabel>
             </StatItem>
             <StatItem>
               <StatValue>{profile.friend_count || 0}</StatValue>
-              <StatLabel>好友</StatLabel>
+              <StatLabel>Friends</StatLabel>
             </StatItem>
           </Stats>
           
           {isOwnProfile ? (
-            <ActionButton as={Link} to="/profile/edit">编辑个人资料</ActionButton>
-          ) : currentUser && (
+            <ActionButton as={Link} to="/profile/edit">Edit Profile</ActionButton>
+          ) : currentUser ? (
             <>
               {friendshipStatus === 'friends' && (
-                <ActionButton disabled>已是好友</ActionButton>
+                <ActionButton disabled>Friends</ActionButton>
               )}
               {friendshipStatus === 'pending' && (
                 <ActionButton disabled>
-                  {friendRequestSent ? '请求已发送' : '等待接受'}
+                  {friendRequestSent ? 'Request Sent' : 'Awaiting Acceptance'}
                 </ActionButton>
               )}
               {(!friendshipStatus || friendshipStatus === 'none') && (
-                <ActionButton primary onClick={handleSendFriendRequest}>
-                  添加好友
+                <ActionButton $primary onClick={handleSendFriendRequest}>
+                  Add Friend
                 </ActionButton>
               )}
             </>
-          )}
+          ) : null}
         </ProfileInfo>
       </ProfileHeader>
       
-      <TabsContainer>
-        <Tab 
-          active={activeTab === 'boards'} 
-          onClick={() => handleTabChange('boards')}
-        >
-          面板
-        </Tab>
-        <Tab 
-          active={activeTab === 'pins'} 
-          onClick={() => handleTabChange('pins')}
-        >
-          图钉
-        </Tab>
-      </TabsContainer>
-      
-      {activeTab === 'boards' && (
-        <>
-          {boards.length > 0 ? (
-            <BoardsGrid>
-              {boards.map(board => (
-                <BoardCard key={board.board_id} to={`/board/${board.board_id}`}>
-                  <BoardThumbnail>
-                    {board.cover_image ? (
-                      <img src={board.cover_image} alt={board.board_name} />
-                    ) : (
-                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-                        暂无图片
-                      </div>
-                    )}
-                  </BoardThumbnail>
-                  <BoardInfo>
-                    <BoardName>{board.board_name}</BoardName>
-                    <BoardStats>{board.pin_count || 0} 个图钉</BoardStats>
-                  </BoardInfo>
-                </BoardCard>
-              ))}
-              
-              {isOwnProfile && (
-                <BoardCard to="/board/create" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="#666" />
-                    </svg>
-                    <div style={{ marginTop: '0.5rem', color: '#666' }}>创建面板</div>
-                  </div>
-                </BoardCard>
-              )}
-            </BoardsGrid>
-          ) : (
-            <EmptyState>
-              <EmptyStateTitle>
-                {isOwnProfile ? '您还没有创建任何面板' : `${profile.username} 还没有创建任何面板`}
-              </EmptyStateTitle>
-              <EmptyStateMessage>
-                {isOwnProfile 
-                  ? '面板是整理和保存图钉的地方。为您的不同兴趣创建面板，开始收集灵感吧！' 
-                  : '当有面板创建时，它们将显示在这里。'}
-              </EmptyStateMessage>
-              
-              {isOwnProfile && (
-                <ActionButton primary as={Link} to="/board/create">
-                  创建第一个面板
-                </ActionButton>
-              )}
-            </EmptyState>
-          )}
-        </>
-      )}
-      
-      {activeTab === 'pins' && (
-        <>
-          {pins.length > 0 ? (
-            <PinGrid pins={pins} />
-          ) : (
-            <EmptyState>
-              <EmptyStateTitle>
-                {isOwnProfile ? '您还没有保存任何图钉' : `${profile.username} 还没有保存任何图钉`}
-              </EmptyStateTitle>
-              <EmptyStateMessage>
-                {isOwnProfile 
-                  ? '保存您喜欢的图钉，开始创建个人收藏吧！' 
-                  : '当保存图钉时，它们将显示在这里。'}
-              </EmptyStateMessage>
-              
-              {isOwnProfile && (
-                <ActionButton primary as={Link} to="/">
-                  浏览图钉
-                </ActionButton>
-              )}
-            </EmptyState>
-          )}
-        </>
-      )}
+      <ContentWrapper>
+        <TabsContainer>
+          <Tab 
+            $active={activeTab === 'boards'} 
+            onClick={() => handleTabChange('boards')}
+          >
+            Boards
+          </Tab>
+          <Tab 
+            $active={activeTab === 'pins'} 
+            onClick={() => handleTabChange('pins')}
+          >
+            Pins
+          </Tab>
+        </TabsContainer>
+        
+        {activeTab === 'boards' && (
+          <TabContent>
+            {boards.length > 0 ? (
+              <BoardsGrid>
+                {boards.map(board => (
+                  <BoardCard key={board.board_id} to={`/board/${board.board_id}`}>
+                    <BoardThumbnail>
+                      {board.cover_image ? (
+                        <img src={board.cover_image} alt={board.board_name} />
+                      ) : (
+                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+                          No image
+                        </div>
+                      )}
+                    </BoardThumbnail>
+                    <BoardInfo>
+                      <BoardName>{board.board_name}</BoardName>
+                      <BoardStats>{board.pin_count || 0} pins</BoardStats>
+                    </BoardInfo>
+                  </BoardCard>
+                ))}
+                
+                {isOwnProfile && (
+                  <BoardCard to="/board/create" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="#666" />
+                      </svg>
+                      <div style={{ marginTop: '0.5rem', color: '#666' }}>Create Board</div>
+                    </div>
+                  </BoardCard>
+                )}
+              </BoardsGrid>
+            ) : (
+              <EmptyState>
+                <EmptyStateTitle>
+                  {isOwnProfile 
+                    ? "You haven't created any boards yet" 
+                    : `${profile.username} hasn't created any boards yet`}
+                </EmptyStateTitle>
+                <EmptyStateMessage>
+                  {isOwnProfile 
+                    ? "Boards are where you organize and save pins. Create boards for your different interests and start collecting inspiration!" 
+                    : "When boards are created, they will appear here."}
+                </EmptyStateMessage>
+                
+                {isOwnProfile && (
+                  <ActionButton $primary as={Link} to="/board/create">
+                    Create Your First Board
+                  </ActionButton>
+                )}
+              </EmptyState>
+            )}
+          </TabContent>
+        )}
+        
+        {activeTab === 'pins' && (
+          <TabContent>
+            {console.log('Rendering pins section, pins count:', pins.length)}
+            {pins.length > 0 ? (
+              <PinGridWrapper>
+                <PinGrid pins={pins} />
+              </PinGridWrapper>
+            ) : (
+              <EmptyState>
+                <EmptyStateTitle>
+                  {isOwnProfile 
+                    ? "You haven't saved any pins yet" 
+                    : `${profile.username} hasn't saved any pins yet`}
+                </EmptyStateTitle>
+                <EmptyStateMessage>
+                  {isOwnProfile 
+                    ? "Save pins you like and start building your collection!" 
+                    : "When pins are saved, they will appear here."}
+                </EmptyStateMessage>
+                
+                {isOwnProfile && (
+                  <ActionButton $primary as={Link} to="/">
+                    Browse Pins
+                  </ActionButton>
+                )}
+              </EmptyState>
+            )}
+          </TabContent>
+        )}
+      </ContentWrapper>
     </ProfileContainer>
   );
 };

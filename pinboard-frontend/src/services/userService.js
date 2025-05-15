@@ -2,12 +2,13 @@ import api from './api';
 
 // 获取用户资料
 export const getUserProfile = async (username) => {
-  return await api.get(`/users/${username}`);
+  return await api.get(`/users/by-username/${username}`);
 };
 
-// 更新用户资料
+// update my User Profile
 export const updateUserProfile = async (userData) => {
-  return await api.put('/users/profile', userData);
+  // 使用PATCH而不是PUT
+  return await api.patch('/users/me/', userData);
 };
 
 // 更改密码
@@ -71,4 +72,9 @@ export const deleteAccount = async () => {
 // 获取用户的面板
 export const getBoards = async (userId) => {
   return await api.get(`/users/${userId}/boards`);
+};
+
+// get current user's Profile
+export const getCurrentUserProfile = async () => {
+  return await api.get('/users/me/');
 };

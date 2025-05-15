@@ -47,6 +47,38 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # 获取用户信息的action
+    @action(detail=False, methods=['get'], url_path='by-username/(?P<username>[^/.]+)')
+    def get_by_username(self, request, username=None):
+        try:
+            user = CustomUser.objects.get(username=username)
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # 获取用户拥有的board的信息的action
+    @action(detail=True, methods=['get'], url_path='boards')
+    def get_user_boards(self, request, pk=None):
+        try:
+            user = self.get_object()
+            boards = Board.objects.filter(owner=user)
+            serializer = BoardSerializer(boards, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # 获取用户的pin的action
+    @action(detail=True, methods=['get'], url_path='pins')
+    def get_user_pins(self, request, pk=None):
+        try:
+            user = self.get_object()
+            pins = Pin.objects.filter(user=user)
+            serializer = PinSerializer(pins, many=True, context={'request': request})
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     # 获取/更新当前登录用户信息的action
     @action(detail=False, methods=['get', 'put', 'patch'], permission_classes=[permissions.IsAuthenticated], url_path='me')
     def me(self, request):
@@ -63,6 +95,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
 
     # 其他 UserViewSet 的方法，例如 list, retrieve, update, destroy
     # 你可能需要调整这些方法的权限，例如：

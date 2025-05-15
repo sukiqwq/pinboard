@@ -22,7 +22,10 @@ export const deleteBoard = async (boardId) => {
 
 // 获取用户的所有面板
 export const getBoards = async (userId) => {
-  return await api.get('/boards/my_boards/');
+  if (!userId) {
+    return await api.get('/boards/my_boards/');
+  }
+  return await api.get(`/users/${userId}/boards/`);
 };
 
 
