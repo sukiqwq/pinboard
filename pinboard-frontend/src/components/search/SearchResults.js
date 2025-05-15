@@ -308,32 +308,32 @@ const SearchResults = () => {
   return (
     <SearchContainer>
       <SearchHeader>
-        <SearchQuery>搜索结果: "{query}"</SearchQuery>
+        <SearchQuery>Search results for: "{query}"</SearchQuery>
 
         <TabsContainer>
           <Tab
             active={activeTab === 'pins'}
             onClick={() => handleTabChange('pins')}
           >
-            图钉
+            Pins
           </Tab>
           <Tab
             active={activeTab === 'tags'}
             onClick={() => handleTabChange('tags')}
           >
-            标签
+            Tags
           </Tab>
           <Tab
             active={activeTab === 'boards'}
             onClick={() => handleTabChange('boards')}
           >
-            面板
+            Boards
           </Tab>
           <Tab
             active={activeTab === 'users'}
             onClick={() => handleTabChange('users')}
           >
-            用户
+            Users
           </Tab>
         </TabsContainer>
       </SearchHeader>
@@ -350,9 +350,9 @@ const SearchResults = () => {
                 <PinGrid pins={pins} />
               ) : (
                 <NoResults>
-                  <NoResultsTitle>没有找到匹配标题的图钉</NoResultsTitle>
+                  <NoResultsTitle>No matching pins found</NoResultsTitle>
                   <NoResultsMessage>
-                    尝试使用不同的标题，或者使用标签搜索。
+                    Try using different titles or search by tags.
                   </NoResultsMessage>
                 </NoResults>
               )}
@@ -365,9 +365,9 @@ const SearchResults = () => {
                 <PinGrid pins={pins} />
               ) : (
                 <NoResults>
-                  <NoResultsTitle>没有找到匹配标签的图钉</NoResultsTitle>
+                  <NoResultsTitle>No matching tags found</NoResultsTitle>
                   <NoResultsMessage>
-                    尝试使用不同的关键词，或者浏览其他类别。
+                    Try using different keywords or explore other categories.
                   </NoResultsMessage>
                 </NoResults>
               )}
@@ -388,7 +388,7 @@ const SearchResults = () => {
                           <img src={board.cover_image} alt={board.board_name} />
                         ) : (
                           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-                            暂无图片
+                            No image available
                           </div>
                         )}
                       </BoardThumbnail>
@@ -407,9 +407,9 @@ const SearchResults = () => {
                 </BoardsGrid>
               ) : (
                 <NoResults>
-                  <NoResultsTitle>没有找到匹配的面板</NoResultsTitle>
+                  <NoResultsTitle>No matching boards found</NoResultsTitle>
                   <NoResultsMessage>
-                    尝试使用不同的关键词，或者浏览其他类别。
+                    Try using different keywords or explore other categories.
                   </NoResultsMessage>
                 </NoResults>
               )}
@@ -430,14 +430,14 @@ const SearchResults = () => {
                         <Username>{user.username}</Username>
                         {user.profile_info && <UserBio>{user.profile_info}</UserBio>}
                         <UserStat>
-                          {user.board_count || 0} 个面板 • {user.pin_count || 0} 个图钉
+                          {user.board_count || 0} boards • {user.pin_count || 0} pins
                         </UserStat>
                       </UserInfo>
-                      {/* 动态显示好友图标或 "Me" 标签 */}
+                      {/* Dynamic display of friend icon or "Me" badge */}
                       {user.id === currentUser.id ? (
                         <StatusBadge>Me</StatusBadge>
                       ) : user.is_friend ? (
-                        <FriendIcon title="好友">
+                        <FriendIcon title="Friend">
                           <svg
                             width="16"
                             height="16"
@@ -454,7 +454,7 @@ const SearchResults = () => {
                             e.stopPropagation();
                             handleSendFriendRequest(user.id);
                           }}
-                          aria-label="添加好友"
+                          aria-label="Add Friend"
                         >
                           <svg
                             width="16"
@@ -473,9 +473,9 @@ const SearchResults = () => {
                 </div>
               ) : (
                 <NoResults>
-                  <NoResultsTitle>没有找到匹配的用户</NoResultsTitle>
+                  <NoResultsTitle>No matching users found</NoResultsTitle>
                   <NoResultsMessage>
-                    尝试使用不同的关键词，或者浏览其他类别。
+                    Try using different keywords or explore other categories.
                   </NoResultsMessage>
                 </NoResults>
               )}

@@ -27,11 +27,12 @@ const HomePage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [fetchingMore, setFetchingMore] = useState(false);
   const [error, setError] = useState(null);
-
 
   const fetchPins = async () => {
     try {
+      setFetchingMore(true);
       const response = await getPins(page);
       const newPins = response.data;
 
@@ -43,10 +44,12 @@ const HomePage = () => {
       }
 
       setLoading(false);
+      setFetchingMore(false);
     } catch (err) {
-      console.error('获取图钉失败:', err);
-      setError('获取图钉失败，请稍后再试');
+      console.error('Failed to fetch pins:', err);
+      setError('Failed to fetch pins. Please try again later.');
       setLoading(false);
+      setFetchingMore(false);
     }
   };
 
@@ -68,12 +71,12 @@ const HomePage = () => {
         dataLength={pins.length}
         next={fetchPins}
         hasMore={hasMore}
-        loader={<LoadingMessage>加载更多图钉...</LoadingMessage>}
+        loader={fetchingMore && <LoadingMessage>Loading more pins...</LoadingMessage>}
         endMessage={
           <EndMessage>
             {pins.length > 0
-              ? '已经到底啦！没有更多图钉了~'
-              : '暂时还没有图钉，快来分享第一个吧！'}
+              ? "You've reached the end! No more pins available."
+              : 'No pins available yet. Be the first to share one!'}
           </EndMessage>
         }
       >

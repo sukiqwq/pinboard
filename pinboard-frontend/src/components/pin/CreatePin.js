@@ -205,8 +205,8 @@ const CreatePin = (props) => {
           setFormData(prev => ({ ...prev, boardId: response.data[0].board_id }));
         }
       } catch (err) {
-        console.error('获取面板失败:', err);
-        setError('无法加载您的面板，请稍后再试');
+        console.error('Failed to fetch boards:', err);
+        setError('Unable to load your boards. Please try again later.');
       }
     };
 
@@ -223,13 +223,13 @@ const CreatePin = (props) => {
     if (file) {
       // 验证文件类型
       if (!file.type.match('image.*')) {
-        setError('请上传图片文件');
+        setError('Please upload an image file.');
         return;
       }
 
       // 文件大小限制 (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        setError('图片大小不能超过10MB');
+        setError('Image size cannot exceed 10MB.');
         return;
       }
 
@@ -248,7 +248,7 @@ const CreatePin = (props) => {
     e.preventDefault();
 
     if (!boardId) {
-      setError('请选择一个面板');
+      setError('Please select a board.');
       return;
     }
 
@@ -270,7 +270,7 @@ const CreatePin = (props) => {
       } else {
         // 创建新 Pin 操作
         if (!imageFile) {
-          setError('请选择一张图片上传');
+          setError('Please select an image to upload.');
           return;
         }
 
@@ -296,8 +296,8 @@ const CreatePin = (props) => {
         navigate(`/pin/${pinResponse.data.pin_id}`);
       }
     } catch (err) {
-      console.error('操作失败:', err);
-      setError(err.response?.data?.message || '操作失败，请稍后再试');
+      console.error('Operation failed:', err);
+      setError(err.response?.data?.message || 'Operation failed. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -305,13 +305,13 @@ const CreatePin = (props) => {
 
   return (
     <CreatePinContainer>
-      <Title>创建新图钉</Title>
+      <Title>Create New Pin</Title>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
       {isRepin && originPin && (
         <div style={{ marginBottom: '1rem', textAlign: 'center', color: '#666' }}>
-          正在转存图钉: <strong>{originPin.title}</strong>
+          Repinning pin: <strong>{originPin.title}</strong>
         </div>
       )}
 
@@ -320,7 +320,7 @@ const CreatePin = (props) => {
           <FormColumn>
             {previewUrl ? (
               <ImagePreview>
-                <img src={previewUrl} alt="预览" />
+                <img src={previewUrl} alt="Preview" />
               </ImagePreview>
             ) : (
               !isRepin && (
@@ -328,8 +328,8 @@ const CreatePin = (props) => {
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
                   </svg>
-                  <p>点击选择一张图片</p>
-                  <p>或拖放图片到这里</p>
+                  <p>Click to select an image</p>
+                  <p>or drag and drop an image here</p>
                   <input
                     type="file"
                     id="image-upload"
@@ -351,7 +351,7 @@ const CreatePin = (props) => {
                   }}
                   style={{ background: 'none', border: 'none', color: '#e60023', cursor: 'pointer' }}
                 >
-                  更换图片
+                  Change Image
                 </button>
               </div>
             )}
@@ -359,7 +359,7 @@ const CreatePin = (props) => {
 
           <FormColumn>
             <FormGroup>
-              <Label htmlFor="boardId">选择面板</Label>
+              <Label htmlFor="boardId">Select Board</Label>
               {boards.length > 0 ? (
                 <Select
                   id="boardId"
@@ -368,7 +368,7 @@ const CreatePin = (props) => {
                   onChange={handleChange}
                   required
                 >
-                  <option value="">-- 选择面板 --</option>
+                  <option value="">-- Select Board --</option>
                   {boards.map(board => (
                     <option key={board.board_id} value={board.board_id}>
                       {board.board_name}
@@ -377,53 +377,53 @@ const CreatePin = (props) => {
                 </Select>
               ) : (
                 <>
-                  <p>您还没有创建任何面板</p>
-                  <BoardLink href="/board/create">创建第一个面板</BoardLink>
+                  <p>You haven't created any boards yet.</p>
+                  <BoardLink href="/board/create">Create your first board</BoardLink>
                 </>
               )}
             </FormGroup>
 
             <FormGroup>
-              <Label htmlFor="title">标题</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
                 name="title"
                 type="text"
                 value={title}
                 onChange={handleChange}
-                placeholder="请输入图钉标题"
+                placeholder="Enter pin title"
                 required
               />
             </FormGroup>
 
             <FormGroup>
-              <Label htmlFor="tags">标签 (使用逗号分隔)</Label>
+              <Label htmlFor="tags">Tags (separated by commas)</Label>
               <Input
                 id="tags"
                 name="tags"
                 type="text"
                 value={tags}
                 onChange={handleChange}
-                placeholder="例如: 美食,甜点,巧克力"
+                placeholder="e.g., food, dessert, chocolate"
                 disabled={isRepin} // 如果是转存，禁用标签输入框
               />
             </FormGroup>
 
             <FormGroup>
-              <Label htmlFor="description">描述 (可选)</Label>
+              <Label htmlFor="description">Description (optional)</Label>
               <TextArea
                 id="description"
                 name="description"
                 value={description}
                 onChange={handleChange}
-                placeholder="添加一些关于这张图片的描述..."
+                placeholder="Add a description about this image..."
               />
             </FormGroup>
           </FormColumn>
         </FormRow>
 
         <Button type="submit" disabled={loading || (!isRepin && !imageFile) || !boardId}>
-          {loading ? '创建中...' : '创建图钉'}
+          {loading ? 'Creating...' : 'Create Pin'}
         </Button>
       </Form>
     </CreatePinContainer>
