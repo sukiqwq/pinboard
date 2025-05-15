@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { useAuth } from '../../context/AuthContext';
 import { createBoard } from '../../services/boardService';
+import { useBoards } from '../../context/BoardContext'; // Import useBoards hook
 import {
   Container,
   Title,
@@ -18,6 +18,7 @@ import {
 
 const CreateBoard = () => {
   const navigate = useNavigate();
+  const { refreshBoards } = useBoards(); // Get refreshBoards function from context
 
   const [formData, setFormData] = useState({
     boardName: '',
@@ -29,7 +30,7 @@ const CreateBoard = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    // 表单项更新处理 / Handle input and checkbox change
+    // Handle input and checkbox change
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -49,13 +50,18 @@ const CreateBoard = () => {
       setError('');
 
       const boardData = {
-        board_name: formData.boardName, // 确保字段名与后端一致 / Match backend field
+        board_name: formData.boardName, // Match backend field
         descriptor: formData.description,
         allow_friends_comment: formData.allowFriendsComment,
       };
 
       const response = await createBoard(boardData);
       console.log('Board created:', response.data);
+      
+      // Refresh boards list in context
+      refreshBoards();
+      
+      // Navigate to the new board page
       navigate(`/board/${response.data.board_id}`);
     } catch (err) {
       console.error('Failed to create board:', err);

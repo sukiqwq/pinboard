@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useBoards } from '../../context/BoardContext'; // Import useBoards hook
+
+// Import styled components
 import {
   NavContainer,
   NavContent,
@@ -13,14 +16,32 @@ import {
   UserAvatar,
   DropdownMenu,
   MenuItem,
-  MenuButton
+  MenuButton,
+  SubMenuContainer,
+  SubMenu
 } from './Navbar.styles';
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
+  const { boards: userBoards, loading: boardsLoading } = useBoards(); // Use boards from context
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -36,6 +57,18 @@ const Navbar = () => {
 
   const toggleDropdown = () => {
     setShowDropdown(!showDropdown);
+  };
+
+  // For touch devices - toggle submenu visibility
+  const handleSubmenuToggle = (e) => {
+    // Only for touch devices
+    if (window.matchMedia('(hover: none)').matches) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const parent = e.currentTarget.parentNode;
+      parent.classList.toggle('active');
+    }
   };
 
   return (
@@ -60,7 +93,8 @@ const Navbar = () => {
           {currentUser ? (
             <>
               <NavLink to="/pin/create">Create Pin</NavLink>
-              <UserMenu>
+              
+              <UserMenu ref={dropdownRef}>
                 <UserAvatar onClick={toggleDropdown}>
                   {currentUser.username.charAt(0).toUpperCase()}
                 </UserAvatar>
@@ -69,7 +103,46 @@ const Navbar = () => {
                   <DropdownMenu>
                     <MenuItem to={`/user/${currentUser.username}`}>Profile</MenuItem>
                     <MenuItem to="/profile/edit">Edit Profile</MenuItem>
-                    <MenuItem to="/board/create">Create Board</MenuItem>
+                    
+                    {/* My Boards with submenu */}
+                    <SubMenuContainer className="has-submenu">
+                      <MenuItem 
+                        as="div" 
+                        onClick={handleSubmenuToggle}
+                      >
+                        My Boards
+                        <span className="submenu-arrow">›</span>
+                        <div className="submenu-gap"></div>
+                      </MenuItem>
+                      
+                      <SubMenu className="submenu boards-submenu">
+                        <MenuItem to="/board/create" className="create-board-option">
+                          <span className="plus-icon">+</span> Create New Board
+                        </MenuItem>
+                        
+                        {!boardsLoading && userBoards.length > 0 ? (
+                          <>
+                            <div className="board-divider"></div>
+                            <p className="boards-section-title">Your Boards</p>
+                            
+                            {userBoards.map(board => (
+                              <MenuItem 
+                                key={board.board_id} 
+                                to={`/board/${board.board_id}`}
+                                onClick={() => setShowDropdown(false)}
+                              >
+                                {board.board_name}
+                              </MenuItem>
+                            ))}
+                          </>
+                        ) : (
+                          <p style={{ padding: '8px 16px', color: '#888', fontSize: '13px' }}>
+                            {boardsLoading ? 'Loading...' : 'No boards yet'}
+                          </p>
+                        )}
+                      </SubMenu>
+                    </SubMenuContainer>
+                    
                     <MenuItem to="/friend-requests">Friend Requests</MenuItem>
                     <MenuButton onClick={handleLogout}>
                       Log Out

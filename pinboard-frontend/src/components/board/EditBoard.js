@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useBoards } from '../../context/BoardContext'; // Import useBoards hook
 import { getBoard, updateBoard } from '../../services/boardService';
 import Spinner from '../common/Spinner';
 import {
@@ -20,6 +21,7 @@ import {
 const EditBoard = () => {
   const { boardId } = useParams();
   const { currentUser } = useAuth();
+  const { refreshBoards } = useBoards(); // Get refreshBoards function from context
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -40,14 +42,14 @@ const EditBoard = () => {
         const response = await getBoard(boardId);
         const board = response.data;
         
-        // 检查是否为面板所有者 / Check if the current user is the board owner
-        if (currentUser && board.owner_user_id !== currentUser.user_id) {
+        // Check if the current user is the board owner
+        if (currentUser && board.owner.id !== currentUser.user_id) {
           setError('You do not have permission to edit this board.');
           navigate(`/board/${boardId}`);
           return;
         }
         
-        // 初始化表单数据 / Initialize form with existing board data
+        // Initialize form with existing board data
         setOriginalBoard(board);
         setFormData({
           boardName: board.board_name || '',
@@ -93,6 +95,9 @@ const EditBoard = () => {
       };
       
       await updateBoard(boardId, boardData);
+      
+      // Refresh boards list in context after successful update
+      refreshBoards();
       
       navigate(`/board/${boardId}`);
     } catch (err) {

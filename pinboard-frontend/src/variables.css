@@ -52,3 +52,77 @@
   --transition-medium: 0.3s;
   --transition-slow: 0.5s;
 }
+
+/* Fix for submenu visibility when hovering */
+.submenu-gap {
+  position: absolute;
+  top: 0;
+  right: -10px;
+  height: 100%;
+  width: 10px;
+  background-color: transparent;
+}
+
+/* Ensure the submenu doesn't disappear when moving mouse toward it */
+.submenu {
+  margin-left: 5px; /* Add a small gap for visual separation */
+}
+
+/* For mobile/touch devices - keep the submenu open on tap */
+@media (hover: none) {
+  .has-submenu.active .submenu {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+  }
+}
+
+/* Smooth transition for submenu */
+.submenu {
+  transition: opacity 0.2s, transform 0.2s;
+  transform: translateX(10px);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.has-submenu:hover .submenu {
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Submenu arrow styling */
+.submenu-arrow {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+}
+
+/* Maximum height for submenu with scrollbar for many boards */
+.boards-submenu {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Styling for the Create Board option */
+.create-board-option {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+.create-board-option .plus-icon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+/* Section title in the boards list */
+.boards-section-title {
+  font-size: 12px;
+  color: #666;
+  padding: 8px 16px 4px;
+  margin: 0;
+}

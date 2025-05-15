@@ -1,8 +1,9 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { BoardProvider } from './context/BoardContext'; // Import BoardProvider
 
-// 导入页面组件
+// Import page components
 import HomePage from './components/HomePage';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
@@ -17,7 +18,7 @@ import FriendRequests from './components/social/FriendRequests';
 import NotFound from './components/common/NotFound';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/Layout';
-// 导入编辑个人资料组件
+// Import edit profile component
 import EditProfile from './components/common/EditProfile';
 
 const App = () => {
@@ -28,32 +29,34 @@ const App = () => {
   }
 
   return (
-    <Routes>
-      {/* 公共路由 */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+    <BoardProvider> {/* Wrap entire app with BoardProvider */}
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {/* 带导航布局的路由 */}
-      <Route element={<Layout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/search" element={<SearchResults />} />
-        <Route path="/pin/:pinId" element={<PinDetail />} />
-        <Route path="/user/:username" element={<ProfilePage />} />
-        <Route path="/board/:boardId" element={<BoardPage />} />
-        
-        {/* 受保护的路由 */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/board/create" element={<CreateBoard />} />
-          <Route path="/board/:boardId/edit" element={<EditBoard />} />
-          <Route path="/pin/create" element={<CreatePin />} />
-          <Route path="/friend-requests" element={<FriendRequests />} />
-          <Route path="/profile/edit" element={<EditProfile />} />
+        {/* Routes with navigation layout */}
+        <Route element={<Layout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/pin/:pinId" element={<PinDetail />} />
+          <Route path="/user/:username" element={<ProfilePage />} />
+          <Route path="/board/:boardId" element={<BoardPage />} />
+          
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/board/create" element={<CreateBoard />} />
+            <Route path="/board/:boardId/edit" element={<EditBoard />} />
+            <Route path="/pin/create" element={<CreatePin />} />
+            <Route path="/friend-requests" element={<FriendRequests />} />
+            <Route path="/profile/edit" element={<EditProfile />} />
+          </Route>
+          
+          {/* 404 page */}
+          <Route path="*" element={<NotFound />} />
         </Route>
-        
-        {/* 404 页面 */}
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+      </Routes>
+    </BoardProvider>
   );
 };
 

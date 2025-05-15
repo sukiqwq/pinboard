@@ -111,6 +111,7 @@ export const MenuItem = styled(Link)`
   padding: var(--spacing-xs) var(--spacing-md);
   color: var(--black);
   text-decoration: none;
+  position: relative;
   
   &:hover {
     background-color: var(--light-gray);
@@ -126,5 +127,47 @@ export const MenuButton = styled.div`
   
   &:hover {
     background-color: var(--light-gray);
+  }
+`;
+
+/* Submenu components */
+export const SubMenuContainer = styled.div`
+  position: relative;
+  
+  &:hover > ${MenuItem} {
+    background-color: var(--light-gray);
+  }
+  
+  &:hover > div {
+    display: block;
+  }
+`;
+
+export const SubMenu = styled.div`
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background-color: var(--white);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-md);
+  width: 200px;
+  padding: var(--spacing-xs) 0;
+  z-index: 1001;
+  max-height: 300px;
+  overflow-y: auto;
+  
+  /* Additional style for board items */
+  .board-divider {
+    height: 1px;
+    background-color: var(--light-gray);
+    margin: var(--spacing-xs) 0;
+  }
+  
+  .board-section-title {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    padding: 0 var(--spacing-md);
+    margin: var(--spacing-xs) 0;
   }
 `;
