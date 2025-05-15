@@ -52,6 +52,7 @@ const BoardPage = () => {
 
         // Get pins in this board
         const pinsResponse = await getBoardPins(boardId);
+        console.log('Pins:', pinsResponse.data);
         setPins(pinsResponse.data);
 
         // Check follow status if user is logged in

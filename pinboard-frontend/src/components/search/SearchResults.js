@@ -235,6 +235,7 @@ const SearchResults = () => {
         // 根据当前活动标签获取对应的搜索结果
         if (activeTab === 'pins') {
           const response = await searchPins(query);
+          console.log('Pins response:', response.data);
           setPins(response.data);
         } else if (activeTab === 'tags') {
           const response = await searchTags(query);

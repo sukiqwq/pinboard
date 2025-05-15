@@ -15,7 +15,7 @@ export const sendFriendRequest = async (receiverId) => {
 
 // 接受好友请求
 export const acceptFriendRequest = async (requestId) => {
-  return await api.post(`/friend-requests/${requestId}/accept/`, { "status": 'accepted' });
+  return await api.post(`/friend-requests/${requestId}/accept/`);
 };
 
 // 拒绝好友请求

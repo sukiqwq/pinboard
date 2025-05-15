@@ -95,12 +95,12 @@ class BoardViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(user_boards, many=True)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticatedOrReadOnly])
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticatedOrReadOnly], url_path='pins')
     def pins(self, request, pk=None):
         try:
             board = self.get_object()  # 获取当前的 Board 对象
             pins = Pin.objects.filter(board=board)  # 查询与该 Board 关联的所有 Pin
-            serializer = PinSerializer(pins, many=True)
+            serializer = PinSerializer(pins, many=True, context={'request': request})
             return Response(serializer.data)
         except Board.DoesNotExist:
             return Response({"error": "Board not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -299,8 +299,7 @@ class PinViewSet(viewsets.ModelViewSet):
 
         except Pin.DoesNotExist:
             return Response({"error": "Pin not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
+        
 
 class FriendshipRequestViewSet(viewsets.ModelViewSet):
     queryset = FriendshipRequest.objects.all()
@@ -317,7 +316,7 @@ class FriendshipRequestViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='list-requests', permission_classes=[permissions.IsAuthenticated])
     def list_requests(self, request):
         # 获取当前用户是接收者的请求
-        received_requests = FriendshipRequest.objects.filter(receiver=request.user)
+        received_requests = FriendshipRequest.objects.filter(receiver=request.user, status='pending')
         received_serializer = FriendshipRequestSerializer(received_requests, many=True)
 
         # 获取当前用户是发送者的请求
@@ -348,25 +347,30 @@ class FriendshipRequestViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='accept', permission_classes=[permissions.IsAuthenticated])
     def accept(self, request, pk=None):
         friend_request = self.get_object()
-        if friend_request.receiver == request.user and friend_request.status == 'pending':
+        current_user = self.request.user  # 自动获取当前登录用户
+
+        if friend_request.receiver == current_user and friend_request.status == 'pending':
             friend_request.status = 'accepted'
-            friend_request.response_time = timezone.now() # from django.utils import timezone
+            friend_request.response_time = timezone.now()  # from django.utils import timezone
             friend_request.save()
-            # Create Friendship record
+
+            # 创建 Friendship 记录
             Friendship.objects.create(user1=friend_request.sender, user2=friend_request.receiver)
+
             return Response({'status': 'friend request accepted'})
         return Response({'status': 'failed'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], url_path='reject', permission_classes=[permissions.IsAuthenticated])
     def reject(self, request, pk=None):
         friend_request = self.get_object()
-        if friend_request.receiver == request.user and friend_request.status == 'pending':
+        current_user = self.request.user  # 自动获取当前登录用户
+
+        if friend_request.receiver == current_user and friend_request.status == 'pending':
             friend_request.status = 'rejected'
-            friend_request.response_time = timezone.now()
+            friend_request.response_time = timezone.now()  # from django.utils import timezone
             friend_request.save()
             return Response({'status': 'friend request rejected'})
         return Response({'status': 'failed'}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class FollowStreamViewSet(viewsets.ModelViewSet):
     queryset = FollowStream.objects.all()
@@ -519,15 +523,13 @@ class SearchViewSet(viewsets.ViewSet):
         if not query:
             return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 搜索 Pin（通过图片的 tag 或 Pin 的 title）
         pins = Pin.objects.filter(
             Q(picture__tags__icontains=query) | Q(title__icontains=query)
         ).distinct()
 
-        # 分页
         start = (page - 1) * limit
         end = start + limit
-        serializer = PinSerializer(pins[start:end], many=True)
+        serializer = PinSerializer(pins[start:end], many=True, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -586,7 +588,7 @@ class SearchViewSet(viewsets.ViewSet):
         # 分页
         start = (page - 1) * limit
         end = start + limit
-        serializer = PinSerializer(pins[start:end], many=True)
+        serializer = PinSerializer(pins[start:end], many=True, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 # You would also need views for Friendship if you want to list/delete them directly.

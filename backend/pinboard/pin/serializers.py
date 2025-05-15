@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, viewsets
 from django.contrib.auth.models import User # Assuming default user
 from .models import (
     CustomUser, FriendshipRequest, Friendship, Board, Picture,
@@ -46,12 +46,21 @@ class FriendshipSerializer(serializers.ModelSerializer):
 
 class PictureSerializer(serializers.ModelSerializer):
     uploaded_by = UserSerializer(read_only=True)
-    image_url = serializers.ImageField(read_only=True, source='image_file') # To show the URL
+    image_url = serializers.SerializerMethodField()  # 使用 SerializerMethodField 动态生成完整 URL
 
     class Meta:
         model = Picture
         fields = ['picture_id', 'image_file', 'image_url', 'external_url', 'tags', 'uploaded_by', 'upload_time']
-        read_only_fields = ['uploaded_by', 'upload_time'] # Set by server
+        read_only_fields = ['uploaded_by', 'upload_time']  # Set by server
+
+    def get_image_url(self, obj):
+        """
+        返回完整的图片 URL
+        """
+        request = self.context.get('request')  # 从上下文中获取 request
+        if request:
+            return request.build_absolute_uri(obj.image_file.url)  # 构建完整的 URL
+        return obj.image_file.url  # 如果没有 request，返回相对路径
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
