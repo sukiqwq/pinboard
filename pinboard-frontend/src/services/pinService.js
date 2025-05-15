@@ -50,14 +50,14 @@ export const deletePin = async (pinId) => {
   return await api.delete(`/pins/${pinId}/`);
 };
 
-// 点赞图钉
+// 点赞
 export const likePin = async (pinId) => {
   return await api.post(`/pins/${pinId}/like/`);
 };
 
 // 取消点赞
 export const unlikePin = async (pinId) => {
-  return await api.delete(`/pins/${pinId}/like/`);
+  return await api.post(`/pins/${pinId}/unlike/`);
 };
 
 // 创建 Repin
@@ -75,14 +75,17 @@ export const deleteRepin = async (repinId) => {
   return await api.delete(`/repins/${repinId}/`);
 };
 
-// 获取图钉评论
+// 获取评论
 export const getComments = async (pinId) => {
-  return await api.get(`/pins/${pinId}/comments/`);
+  return await api.get(`/pins/${pinId}/get-comments/`);
 };
 
 // 添加评论
-export const addComment = async (pinId, content) => {
-  return await api.post(`/pins/${pinId}/comments/`, { content });
+export const addComment = async ({ pinId, content }) => {
+  const data = { content };
+  if (pinId) data.pin = pinId;
+
+  return await api.post(`/pins/${pinId}/create-comments/`, data);
 };
 
 // 删除评论

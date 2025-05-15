@@ -28,19 +28,20 @@ const HomePage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
+
   const fetchPins = async () => {
     try {
       const response = await getPins(page);
       const newPins = response.data;
-      
+
       if (newPins.length === 0) {
         setHasMore(false);
       } else {
         setPins(prevPins => [...prevPins, ...newPins]);
         setPage(prevPage => prevPage + 1);
       }
-      
+
       setLoading(false);
     } catch (err) {
       console.error('获取图钉失败:', err);
@@ -48,19 +49,19 @@ const HomePage = () => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchPins();
   }, []);
-  
+
   if (loading && pins.length === 0) {
     return <Spinner />;
   }
-  
+
   if (error) {
     return <div>Error: {error}</div>;
   }
-  
+
   return (
     <HomeContainer>
       <InfiniteScroll
@@ -70,8 +71,8 @@ const HomePage = () => {
         loader={<LoadingMessage>加载更多图钉...</LoadingMessage>}
         endMessage={
           <EndMessage>
-            {pins.length > 0 
-              ? '已经到底啦！没有更多图钉了~' 
+            {pins.length > 0
+              ? '已经到底啦！没有更多图钉了~'
               : '暂时还没有图钉，快来分享第一个吧！'}
           </EndMessage>
         }

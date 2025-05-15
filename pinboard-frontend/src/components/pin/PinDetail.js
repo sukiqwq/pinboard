@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, MoreHorizontal, ArrowLeft, BookmarkPlus, Send } from 'lucide-react';
 import { getPin, getComments, addComment, likePin, unlikePin } from '../../services/pinService';
+import { UserAvatar } from '../common/Navbar.styles';
 
 // 格式化日期时间的辅助函数
 const formatDateTime = (dateString) => {
@@ -72,13 +73,13 @@ export default function PinDetail() {
         await unlikePin(pinId);
         setPin(prev => ({
           ...prev,
-          likes_count: prev.likes_count - 1
+          likes_received: (prev.likes_received || 0) - 1
         }));
       } else {
         await likePin(pinId);
         setPin(prev => ({
           ...prev,
-          likes_count: prev.likes_count + 1
+          likes_received: (prev.likes_received || 0) + 1
         }));
       }
       setIsLiked(!isLiked);
@@ -98,7 +99,7 @@ export default function PinDetail() {
     if (commentText.trim() && !submittingComment) {
       try {
         setSubmittingComment(true);
-        const response = await addComment(pinId, commentText);
+        const response = await addComment({ pinId, content: commentText }); // 支持 pinId 或 repinId
 
         // 添加新评论到列表
         setComments(prev => [...prev, response.data]);
@@ -150,15 +151,6 @@ export default function PinDetail() {
         </div>
       ) : pin ? (
         <div className="flex flex-col md:flex-row max-w-6xl mx-auto w-full bg-white shadow-md">
-          {/* 图片部分 */}
-          <div className="md:w-2/3 bg-black flex items-center justify-center">
-            <img
-              src={pin.picture}
-              alt={pin.title}
-              className="max-h-screen object-contain"
-            />
-          </div>
-
           {/* 详情部分 */}
           <div className="md:w-1/3 flex flex-col">
             {/* Pin信息 */}
@@ -196,12 +188,8 @@ export default function PinDetail() {
                   onClick={handleLike}
                 >
                   <Heart size={20} fill={isLiked ? "red" : "none"} color={isLiked ? "red" : "currentColor"} />
-                  <span>{pin.likes_count || 0}</span>
+                  <span>{pin.likes_received || 0}</span>
                 </button>
-                <div className="flex items-center space-x-1">
-                  <MessageCircle size={20} />
-                  <span>{pin.comments_count || 0}</span>
-                </div>
               </div>
             </div>
 
@@ -211,15 +199,12 @@ export default function PinDetail() {
               <div className="space-y-4">
                 {comments.length > 0 ? comments.map(comment => (
                   <div key={comment.id} className="flex space-x-2">
-                    <img
-                      src={comment.user?.avatar_url || '/api/placeholder/40/40'}
-                      alt={comment.user?.username || '用户'}
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <div>
+                    {/* 用户头像 */}
+                    {/* 用户信息和评论内容 */}
+                    <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="font-medium">{comment.user?.username || '未知用户'}</span>
-                        <span className="text-xs text-gray-500">{formatDateTime(comment.created_at)}</span>
+                        <span className="text-xs text-gray-500">{formatDateTime(comment.timestamp)}</span>
                       </div>
                       <p className="text-gray-700">{comment.content}</p>
                     </div>
@@ -233,7 +218,9 @@ export default function PinDetail() {
             {/* 评论输入框 */}
             <div className="p-4 border-t">
               <div className="flex items-center space-x-2">
-                <img src={pin.current_user?.avatar_url || '/api/placeholder/40/40'} alt="当前用户" className="w-8 h-8 rounded-full" />
+                <UserAvatar>
+                  {pin.user.username.charAt(0).toUpperCase()}
+                </UserAvatar>
                 <input
                   type="text"
                   placeholder="添加评论..."

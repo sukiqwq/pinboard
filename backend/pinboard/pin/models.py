@@ -73,32 +73,32 @@ class Picture(models.Model):
 
 class Pin(models.Model):
     pin_id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=255, blank=True, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='pins', on_delete=models.CASCADE)
     board = models.ForeignKey(Board, related_name='pins', on_delete=models.CASCADE)
-    picture = models.ForeignKey(Picture, related_name='pinned_on', on_delete=models.CASCADE) # [cite: 3]
+    picture = models.ForeignKey(Picture, related_name='pinned_on', on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True) 
-    description = models.TextField(blank=True, null=True) 
-
-    def __str__(self):
-        return f"Pin {self.pin_id} by {self.user.username} on {self.board.board_name}"
-
-class Repin(models.Model):
-    # Repin is essentially another Pin, but referencing an original Pin's picture.
-    # The project description says "does not result in a copy of the picture, but is just a pointer to the picture as it was first pinned" [cite: 30]
-    # This suggests a repin should ideally point to the original Picture object.
-    # Your schema has 'original_pin_id'.
-    repin_id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='repins', on_delete=models.CASCADE) # User who repinned
-    board = models.ForeignKey(Board, related_name='repins', on_delete=models.CASCADE) # Board where it's repinned
-    original_pin = models.ForeignKey(Pin, related_name='times_repinned', on_delete=models.CASCADE) # The pin that was repinned [cite: 4]
-    timestamp = models.DateTimeField(auto_now_add=True) # [cite: 32]
-
-    def __str__(self):
-        return f"Repin by {self.user.username} of Pin {self.original_pin.pin_id} on {self.board.board_name}"
-
+    description = models.TextField(blank=True, null=True)
+    
+    # 新增字段: 如果为None表示这是原创Pin，否则表示这是一个Repin
+    origin_pin = models.ForeignKey('self', related_name='repins', on_delete=models.CASCADE, null=True, blank=True)
+    
     @property
-    def picture(self): # To easily access the picture of the original pin
-        return self.original_pin.picture
+    def is_repin(self):
+        return self.origin_pin is not None
+    
+    @property
+    def original_picture(self):
+        """获取原始图片，无论是原创Pin还是Repin"""
+        if self.is_repin:
+            return self.origin_pin.picture
+        return self.picture
+
+    def __str__(self):
+        if self.is_repin:
+            return f"Repin {self.pin_id} by {self.user.username} of Pin {self.origin_pin.pin_id} on {self.board.board_name}"
+        else:
+            return f"Pin {self.pin_id} by {self.user.username} on {self.board.board_name}"
 
 class FollowStream(models.Model):
     stream_id = models.AutoField(primary_key=True)
@@ -110,10 +110,6 @@ class FollowStream(models.Model):
 
     def __str__(self):
         return f"{self.stream_name} by {self.user.username}"
-
-# FollowStreamBoard is handled by the ManyToManyField in FollowStream.
-# If you needed extra fields on the FollowStreamBoard relationship,
-# you'd use a 'through' model.
 
 class Like(models.Model):
     # user_id and pin_id are the primary key according to your schema.
@@ -128,31 +124,14 @@ class Like(models.Model):
     def __str__(self):
         return f"{self.user.username} likes Pin {self.pin.pin_id}"
 
-class Comment(models.Model): # Combined CommentPin and CommentRepin
+class Comment(models.Model):
     comment_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='comments_made', on_delete=models.CASCADE)
     content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True) # [cite: 32]
-
-    # A comment can be on a Pin or a Repin.
-    # "comments about a repinned picture are only associated with the repinned and not the original picture." [cite: 26]
-    # We can use a generic foreign key or two separate foreign keys.
-    # For simplicity and clarity with your schema, let's use two nullable FKs.
-    # Or better, have a "target_content_type" and "target_object_id" for generic relations.
-    # Given your schema has CommentPin and CommentRepin, we can infer the target.
-    # Let's make one Comment table and link it to either Pin or Repin.
-
-    pin = models.ForeignKey(Pin, related_name='comments', on_delete=models.CASCADE, null=True, blank=True)
-    repin = models.ForeignKey(Repin, related_name='comments', on_delete=models.CASCADE, null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    # 只需要一个 pin 外键，不再需要分开 pin 和 repin
+    pin = models.ForeignKey(Pin, related_name='comments', on_delete=models.CASCADE)
 
     def __str__(self):
-        target = f"Pin {self.pin_id}" if self.pin else f"Repin {self.repin_id}"
-        return f"Comment by {self.user.username} on {target}"
-
-    # You'd add a clean method to ensure either pin or repin is set, but not both.
-    def clean(self):
-        from django.core.exceptions import ValidationError
-        if self.pin and self.repin:
-            raise ValidationError("Comment cannot be linked to both a Pin and a Repin.")
-        if not self.pin and not self.repin:
-            raise ValidationError("Comment must be linked to either a Pin or a Repin.")
+        return f"Comment by {self.user.username} on Pin {self.pin.pin_id}"

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     CustomUser, FriendshipRequest, Friendship, Board, Picture,
-    Pin, Repin, FollowStream, Like, Comment
+    Pin, FollowStream, Like, Comment
 )
 
 class FriendshipRequestAdmin(admin.ModelAdmin):
@@ -16,7 +16,6 @@ admin.site.register(Friendship)
 admin.site.register(Board)
 admin.site.register(Picture)
 admin.site.register(Pin)
-admin.site.register(Repin)
 admin.site.register(FollowStream)
 admin.site.register(Like)
 admin.site.register(Comment)

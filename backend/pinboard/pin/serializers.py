@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User # Assuming default user
 from .models import (
     CustomUser, FriendshipRequest, Friendship, Board, Picture,
-    Pin, Repin, FollowStream, Like, Comment
+    Pin, FollowStream, Like, Comment
 )
 
 class UserSerializer(serializers.ModelSerializer):
@@ -25,13 +25,17 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class FriendshipRequestSerializer(serializers.ModelSerializer):
-    sender = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())  # 允许填写 ID
-    receiver = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
-    # sender = UserSerializer(read_only=True)
-    # receiver = UserSerializer(read_only=True)
+    sender = serializers.HiddenField(default=serializers.CurrentUserDefault())  # 自动设置为当前用户
+    sender = UserSerializer(read_only=True)
+    receiver = UserSerializer(read_only=True)
     class Meta:
         model = FriendshipRequest
         fields = '__all__'
+
+    def validate_receiver(self, value):
+        if not CustomUser.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("Receiver does not exist.")
+        return value
 
 class FriendshipSerializer(serializers.ModelSerializer):
     user1 = UserSerializer(read_only=True)
@@ -56,32 +60,45 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['user', 'timestamp']
 
-class RepinSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    # picture = PictureSerializer(read_only=True) # Accessed via original_pin.picture
-    comments = CommentSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Repin
-        fields = '__all__'
-        read_only_fields = ['user', 'timestamp']
-
-
 class PinSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    picture = serializers.PrimaryKeyRelatedField(queryset=Picture.objects.all(), write_only=True)  # 创建时接受 picture_id
-    picture_detail = PictureSerializer(read_only=True, source='picture')  # 获取时返回完整的 Picture 对象
-    likes_received = serializers.SerializerMethodField()  # Example for count
+    picture = serializers.PrimaryKeyRelatedField(queryset=Picture.objects.all())
+    picture_detail = PictureSerializer(read_only=True, source='picture')
+    likes_received = serializers.SerializerMethodField()
     comments = CommentSerializer(many=True, read_only=True)
-
+    is_liked = serializers.SerializerMethodField()
+    is_repin = serializers.BooleanField(read_only=True)
+    origin_pin_detail = serializers.SerializerMethodField(read_only=True)
+    
     class Meta:
         model = Pin
-        fields = ['pin_id', 'user', 'board', 'picture', 'picture_detail', 'timestamp', 'likes_received', 'comments', 'description']
-        read_only_fields = ['user', 'timestamp']
+        fields = [
+            'pin_id', 'user', 'board', 'picture', 'picture_detail', 
+            'timestamp', 'likes_received', 'comments', 'description', 
+            'title', 'is_liked', 'origin_pin', 'is_repin', 'origin_pin_detail'
+        ]
+        read_only_fields = ['user', 'timestamp', 'is_repin']
 
     def get_likes_received(self, obj):
         return obj.likes_received.count()
 
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Like.objects.filter(user=request.user, pin=obj).exists()
+        return False
+    
+    def get_origin_pin_detail(self, obj):
+        """获取原始Pin的详细信息"""
+        if obj.origin_pin:
+            return {
+                'pin_id': obj.origin_pin.pin_id,
+                'user': UserSerializer(obj.origin_pin.user).data,
+                'title': obj.origin_pin.title,
+                'description': obj.origin_pin.description,
+                'timestamp': obj.origin_pin.timestamp,
+            }
+        return None
 
 class BoardSerializer(serializers.ModelSerializer):
     owner = UserSerializer(read_only=True)

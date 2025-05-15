@@ -4,13 +4,14 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
+from django.utils import timezone
 from .models import (
     CustomUser, FriendshipRequest, Friendship, Board, Picture,
-    Pin, Repin, FollowStream, Like, Comment
+    Pin, FollowStream, Like, Comment
 )
 from .serializers import (
     UserSerializer, FriendshipRequestSerializer, FriendshipSerializer,
-    BoardSerializer, PictureSerializer, PinSerializer, RepinSerializer,
+    BoardSerializer, PictureSerializer, PinSerializer,
     FollowStreamSerializer, LikeSerializer, CommentSerializer
 )
 from django.db.models import Q # For complex lookups
@@ -156,20 +157,99 @@ class PinViewSet(viewsets.ModelViewSet):
     serializer_class = PinSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def get_serializer_context(self):
+        # 将 request 添加到序列化器上下文
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def perform_create(self, serializer):
         # Set user to the currently logged-in user [cite: 3]
         # Ensure picture is created or exists before pinning
         serializer.save(user=self.request.user)
 
+    @action(detail=True, methods=['get'], url_path='get-comments', permission_classes=[permissions.AllowAny])
+    def get_comments(self, request, pk=None):
+        try:
+            pin = self.get_object()  # 获取当前的 Pin 对象
+            comments = Comment.objects.filter(pin=pin).order_by('-timestamp')  # 按时间倒序排列
+            serializer = CommentSerializer(comments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Pin.DoesNotExist:
+            return Response({"error": "Pin not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=True, methods=['post'], url_path='create-comments', permission_classes=[permissions.IsAuthenticated])
+    def create_comment(self, request, pk=None):
+        try:
+            pin = self.get_object()  # 获取当前的 Pin 对象
+            content = request.data.get('content')  # 获取评论内容
+            allow_friends_comment = pin.board.allow_friends_comment  # 获取 Board 的设置
 
-class RepinViewSet(viewsets.ModelViewSet):
-    queryset = Repin.objects.all()
-    serializer_class = RepinSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+            # 检查是否仅允许好友评论
+            if allow_friends_comment and not Friendship.objects.filter(user1=request.user, user2=pin.user).exists():
+                return Response({"error": "You are not allowed to comment on this pin."}, status=status.HTTP_403_FORBIDDEN)
 
-    def perform_create(self, serializer):
-        # Set user to the currently logged-in user [cite: 4]
-        serializer.save(user=self.request.user)
+            if not content:
+                return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 创建评论
+            comment = Comment.objects.create(
+                user=request.user,
+                pin=pin,
+                content=content
+            )
+
+            # 序列化并返回新创建的评论
+            serializer = CommentSerializer(comment)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Pin.DoesNotExist:
+            return Response({"error": "Pin not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=True, methods=['post'], url_path='like', permission_classes=[permissions.IsAuthenticated])
+    def like_pin(self, request, pk=None):   
+        try:
+            pin = self.get_object()  # 获取当前的 Pin 对象
+            # 获取原始pin对象
+            if pin.origin_pin:
+                pin = pin.origin_pin  # 如果是 Repin，获取原始 Pin 对象
+            user = request.user
+
+            # 检查用户是否已经喜欢过这个 Pin
+            if Like.objects.filter(user=user, pin=pin).exists():
+                return Response({"error": "You have already liked this pin."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 创建新的 Like 对象
+            like = Like.objects.create(user=user, pin=pin)
+
+            # 序列化并返回新创建的 Like
+            serializer = LikeSerializer(like)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Pin.DoesNotExist:
+            return Response({"error": "Pin not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=True, methods=['post'], url_path='unlike', permission_classes=[permissions.IsAuthenticated])
+    def unlike_pin(self, request, pk=None):
+        try:
+            pin = self.get_object()  # 获取当前的 Pin 对象
+            # 获取原始pin对象
+            if pin.origin_pin:
+                pin = pin.origin_pin  # 如果是 Repin，获取原始 Pin 对象
+            user = request.user
+
+            # 检查用户是否已经喜欢过这个 Pin
+            like = Like.objects.filter(user=user, pin=pin)
+            if not like.exists():
+                return Response({"error": "You have not liked this pin."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 删除 Like 对象
+            like.delete()
+
+            return Response({"message": "Like removed successfully."}, status=status.HTTP_204_NO_CONTENT)
+        except Pin.DoesNotExist:
+            return Response({"error": "Pin not found."}, status=status.HTTP_404_NOT_FOUND)
+
 
 
 class FriendshipRequestViewSet(viewsets.ModelViewSet):
@@ -179,15 +259,43 @@ class FriendshipRequestViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Users should only see requests involving them
-        return FriendshipRequest.objects.filter(
+        queryset = FriendshipRequest.objects.filter(
             Q(sender=self.request.user) | Q(receiver=self.request.user)
         )
+        return queryset
+    
+    @action(detail=False, methods=['get'], url_path='list-requests', permission_classes=[permissions.IsAuthenticated])
+    def list_requests(self, request):
+        # 获取当前用户是接收者的请求
+        received_requests = FriendshipRequest.objects.filter(receiver=request.user)
+        received_serializer = FriendshipRequestSerializer(received_requests, many=True)
+
+        # 获取当前用户是发送者的请求
+        sent_requests = FriendshipRequest.objects.filter(sender=request.user)
+        sent_serializer = FriendshipRequestSerializer(sent_requests, many=True)
+
+        # 返回分开的数据
+        return Response({
+            "received": received_serializer.data,
+            "sent": sent_serializer.data
+        })
 
     def perform_create(self, serializer):
         # Sender is the current user [cite: 21]
-        serializer.save(sender=self.request.user)
+        receiver_id = self.request.data.get('receiver')
+        if not receiver_id:
+            return Response({"error": "Receiver ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'])
+        if receiver_id == self.request.user.id:
+            return Response({"error": "You cannot send a friend request to yourself."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            receiver = CustomUser.objects.get(id=receiver_id)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "Receiver does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer.save(sender=self.request.user, receiver=receiver)
+
+    @action(detail=True, methods=['post'], url_path='accept', permission_classes=[permissions.IsAuthenticated])
     def accept(self, request, pk=None):
         friend_request = self.get_object()
         if friend_request.receiver == request.user and friend_request.status == 'pending':
@@ -199,7 +307,7 @@ class FriendshipRequestViewSet(viewsets.ModelViewSet):
             return Response({'status': 'friend request accepted'})
         return Response({'status': 'failed'}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], url_path='reject', permission_classes=[permissions.IsAuthenticated])
     def reject(self, request, pk=None):
         friend_request = self.get_object()
         if friend_request.receiver == request.user and friend_request.status == 'pending':
@@ -255,42 +363,101 @@ class CommentViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
-        # Set user and check if user is allowed to comment [cite: 6, 24, 51]
-        # This logic would be more complex: check board's allow_friends_comment
-        # and if the commenter is a friend of the board owner if the setting is restrictive.
-        pin_id = serializer.validated_data.get('pin')
-        repin_id = serializer.validated_data.get('repin')
-        target_object = pin_id or repin_id
 
-        if not target_object:
-            return Response({"error": "Comment must be on a pin or repin."}, status=status.HTTP_400_BAD_REQUEST)
-
-        board_owner = None
-        allow_friends_to_comment = False
-
-        if pin_id:
-            board_owner = pin_id.board.owner
-            allow_friends_to_comment = pin_id.board.allow_friends_comment
-        elif repin_id:
-            board_owner = repin_id.board.owner
-            allow_friends_to_comment = repin_id.board.allow_friends_comment
-
-        can_comment = True
-        if allow_friends_to_comment is False: # Only owner can comment
-            if request.user != board_owner:
-                can_comment = False
-        elif allow_friends_to_comment is True and request.user != board_owner: # Friends can comment
-            # Check if request.user is friends with board_owner
-            is_friend = Friendship.objects.filter(
-                (Q(user1=request.user, user2=board_owner) | Q(user1=board_owner, user2=request.user))
-            ).exists()
-            if not is_friend:
-                can_comment = False
-
-        if not can_comment:
-             return Response({"error": "You are not allowed to comment on this item."}, status=status.HTTP_403_FORBIDDEN)
-
+        # 保存评论
         serializer.save(user=self.request.user)
 
+    def get_comments(self, request, pk=None):
+        # 获取特定 Pin 的所有评论
+        pin = self.get_object()
+        comments = Comment.objects.filter(pin=pin).order_by('-timestamp')
+        serializer = self.get_serializer(comments, many=True)
+        return Response(serializer.data)
+
+
+class SearchViewSet(viewsets.ViewSet):
+    """
+    搜索 API，支持 Pins、Boards、Users 和 Tags 的分页搜索
+    """
+
+    @action(detail=False, methods=['get'], url_path='pins')
+    def search_pins(self, request):
+        query = request.query_params.get('q', '').strip()
+        page = int(request.query_params.get('page', 1))
+        limit = int(request.query_params.get('limit', 20))
+
+        if not query:
+            return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 搜索 Pin（通过图片的 tag 或 Pin 的 title）
+        pins = Pin.objects.filter(
+            Q(picture__tags__icontains=query) | Q(title__icontains=query)
+        ).distinct()
+
+        # 分页
+        start = (page - 1) * limit
+        end = start + limit
+        serializer = PinSerializer(pins[start:end], many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='boards')
+    def search_boards(self, request):
+        query = request.query_params.get('q', '').strip()
+        page = int(request.query_params.get('page', 1))
+        limit = int(request.query_params.get('limit', 20))
+
+        if not query:
+            return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 搜索 Board
+        boards = Board.objects.filter(
+            Q(board_name__icontains=query) | Q(descriptor__icontains=query)  # 使用正确的字段名称
+        )
+
+        # 分页
+        start = (page - 1) * limit
+        end = start + limit
+        serializer = BoardSerializer(boards[start:end], many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='users')
+    def search_users(self, request):
+        query = request.query_params.get('q', '').strip()
+        page = int(request.query_params.get('page', 1))
+        limit = int(request.query_params.get('limit', 20))
+
+        if not query:
+            return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 搜索用户
+        users = CustomUser.objects.filter(username__icontains=query)
+
+        # 分页
+        start = (page - 1) * limit
+        end = start + limit
+        serializer = UserSerializer(users[start:end], many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='tags')
+    def search_tags(self, request):
+        query = request.query_params.get('q', '').strip()
+        page = int(request.query_params.get('page', 1))
+        limit = int(request.query_params.get('limit', 20))
+
+        if not query:
+            return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 搜索 Tags（通过图片的 tag）
+        pins = Pin.objects.filter(picture__tags__icontains=query).distinct()
+
+        # 分页
+        start = (page - 1) * limit
+        end = start + limit
+        serializer = PinSerializer(pins[start:end], many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 # You would also need views for Friendship if you want to list/delete them directly.
 # Often friendships are managed through the accept/reject actions on FriendshipRequest.

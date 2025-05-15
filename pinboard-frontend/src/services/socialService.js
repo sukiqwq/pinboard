@@ -2,22 +2,25 @@ import api from './api';
 
 // 获取好友请求列表
 export const getFriendRequests = async () => {
-  return await api.get('/friend-requests');
+  return await api.get('/friend-requests/list-requests/');
 };
 
 // 发送好友请求
 export const sendFriendRequest = async (receiverId) => {
-  return await api.post('/friend-requests', { receiver_id: receiverId });
+  const data = {
+    "receiver": receiverId
+  };
+  return await api.post('/friend-requests/', data);
 };
 
 // 接受好友请求
 export const acceptFriendRequest = async (requestId) => {
-  return await api.put(`/friend-requests/${requestId}`, { status: 'accepted' });
+  return await api.post(`/friend-requests/${requestId}/accept/`, { "status": 'accepted' });
 };
 
 // 拒绝好友请求
 export const rejectFriendRequest = async (requestId) => {
-  return await api.put(`/friend-requests/${requestId}`, { status: 'rejected' });
+  return await api.post(`/friend-requests/${requestId}/reject/`, { "status": 'rejected' });
 };
 
 // 取消已发送的好友请求

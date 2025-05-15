@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { searchPins, searchBoards, searchUsers } from '../../services/searchService';
+import { searchPins, searchBoards, searchUsers, searchTags } from '../../services/searchService';
+import { sendFriendRequest } from '../../services/socialService';
 import PinGrid from '../pin/PinGrid';
 import Spinner from '../common/Spinner';
 import styled from 'styled-components';
@@ -166,6 +167,30 @@ const OwnerName = styled.span`
   color: #666;
 `;
 
+const AddFriendButton = styled.button`
+  width: 30px; 
+  height: 30px; 
+  padding: 0;
+  background-color: #e60023;
+  border: none; 
+  border-radius: 50%; 
+  cursor: pointer; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
+  transition: background-color 0.2s ease; 
+
+  &:hover {
+    background-color: #c3001c; 
+  }
+
+  &:active {
+    background-color: #a00018; 
+  }
+`;
+
 const NoResults = styled.div`
   text-align: center;
   padding: 2rem;
@@ -188,28 +213,31 @@ const SearchResults = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const query = new URLSearchParams(location.search).get('q') || '';
-  
+
   const [activeTab, setActiveTab] = useState('pins');
   const [pins, setPins] = useState([]);
   const [boards, setBoards] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
     if (!query.trim()) {
       navigate('/');
       return;
     }
-    
+
     const fetchSearchResults = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // 根据当前活动标签获取对应的搜索结果
         if (activeTab === 'pins') {
           const response = await searchPins(query);
+          setPins(response.data);
+        } else if (activeTab === 'tags') {
+          const response = await searchTags(query);
           setPins(response.data);
         } else if (activeTab === 'boards') {
           const response = await searchBoards(query);
@@ -218,7 +246,7 @@ const SearchResults = () => {
           const response = await searchUsers(query);
           setUsers(response.data);
         }
-        
+
         setLoading(false);
       } catch (err) {
         console.error('搜索失败:', err);
@@ -226,53 +254,69 @@ const SearchResults = () => {
         setLoading(false);
       }
     };
-    
+
     fetchSearchResults();
   }, [query, activeTab, navigate]);
-  
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   };
-  
+
   const handleUserClick = (username) => {
     navigate(`/user/${username}`);
   };
-  
+
   const handleBoardClick = (boardId) => {
     navigate(`/board/${boardId}`);
   };
-  
+
+  const handleSendFriendRequest = async (user_id) => {
+    try {
+      await sendFriendRequest(user_id);
+      alert('好友请求已发送！');
+    } catch (err) {
+      console.error('发送好友请求失败:', err);
+      alert('发送好友请求失败，请稍后再试。');
+    }
+  };
+
   if (!query.trim()) {
     return null;
   }
-  
+
   return (
     <SearchContainer>
       <SearchHeader>
         <SearchQuery>搜索结果: "{query}"</SearchQuery>
-        
+
         <TabsContainer>
-          <Tab 
-            active={activeTab === 'pins'} 
+          <Tab
+            active={activeTab === 'pins'}
             onClick={() => handleTabChange('pins')}
           >
             图钉
           </Tab>
-          <Tab 
-            active={activeTab === 'boards'} 
+          <Tab
+            active={activeTab === 'tags'}
+            onClick={() => handleTabChange('tags')}
+          >
+            标签
+          </Tab>
+          <Tab
+            active={activeTab === 'boards'}
             onClick={() => handleTabChange('boards')}
           >
             面板
           </Tab>
-          <Tab 
-            active={activeTab === 'users'} 
+          <Tab
+            active={activeTab === 'users'}
             onClick={() => handleTabChange('users')}
           >
             用户
           </Tab>
         </TabsContainer>
       </SearchHeader>
-      
+
       {loading ? (
         <Spinner />
       ) : error ? (
@@ -285,7 +329,22 @@ const SearchResults = () => {
                 <PinGrid pins={pins} />
               ) : (
                 <NoResults>
-                  <NoResultsTitle>没有找到匹配的图钉</NoResultsTitle>
+                  <NoResultsTitle>没有找到匹配标题的图钉</NoResultsTitle>
+                  <NoResultsMessage>
+                    尝试使用不同的标题，或者使用标签搜索。
+                  </NoResultsMessage>
+                </NoResults>
+              )}
+            </>
+          )}
+
+          {activeTab === 'tags' && (
+            <>
+              {pins.length > 0 ? (
+                <PinGrid pins={pins} />
+              ) : (
+                <NoResults>
+                  <NoResultsTitle>没有找到匹配标签的图钉</NoResultsTitle>
                   <NoResultsMessage>
                     尝试使用不同的关键词，或者浏览其他类别。
                   </NoResultsMessage>
@@ -293,14 +352,14 @@ const SearchResults = () => {
               )}
             </>
           )}
-          
+
           {activeTab === 'boards' && (
             <>
               {boards.length > 0 ? (
                 <BoardsGrid>
                   {boards.map(board => (
-                    <BoardCard 
-                      key={board.board_id} 
+                    <BoardCard
+                      key={board.board_id}
                       onClick={() => handleBoardClick(board.board_id)}
                     >
                       <BoardThumbnail>
@@ -335,14 +394,14 @@ const SearchResults = () => {
               )}
             </>
           )}
-          
+
           {activeTab === 'users' && (
             <>
               {users.length > 0 ? (
                 <div>
                   {users.map(user => (
-                    <UserCard 
-                      key={user.user_id} 
+                    <UserCard
+                      key={user.id}
                       onClick={() => handleUserClick(user.username)}
                     >
                       <UserAvatar>{user.username.charAt(0).toUpperCase()}</UserAvatar>
@@ -355,6 +414,24 @@ const SearchResults = () => {
                           {user.board_count || 0} 个面板 • {user.pin_count || 0} 个图钉
                         </UserStat>
                       </UserInfo>
+                      <AddFriendButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSendFriendRequest(user.id);
+                        }}
+                        aria-label="添加好友"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M4 11H20V13H4V11Z" />
+                          <path d="M11 4H13V20H11V4Z" />
+                        </svg>
+                      </AddFriendButton>
                     </UserCard>
                   ))}
                 </div>
@@ -369,8 +446,9 @@ const SearchResults = () => {
             </>
           )}
         </>
-      )}
-    </SearchContainer>
+      )
+      }
+    </SearchContainer >
   );
 };
 

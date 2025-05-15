@@ -179,7 +179,8 @@ const CreatePin = () => {
   const [formData, setFormData] = useState({
     boardId: '',
     tags: '',
-    description: ''
+    description: '',
+    title: ''
   });
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -187,7 +188,7 @@ const CreatePin = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { boardId, tags, description } = formData;
+  const { boardId, tags, description, title } = formData;
 
   // 获取用户的面板列表
   useEffect(() => {
@@ -269,6 +270,7 @@ const CreatePin = () => {
       const pinData = {
         board: boardId,
         picture: pictureId,
+        title,
         description
       };
 
@@ -353,6 +355,19 @@ const CreatePin = () => {
                   <BoardLink href="/board/create">创建第一个面板</BoardLink>
                 </>
               )}
+            </FormGroup>
+
+            <FormGroup>
+              <Label htmlFor="title">标题</Label>
+              <Input
+                id="title"
+                name="title"
+                type="text"
+                value={title}
+                onChange={handleChange}
+                placeholder="请输入图钉标题"
+                required
+              />
             </FormGroup>
 
             <FormGroup>
