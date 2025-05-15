@@ -1,3 +1,6 @@
 # Ignore node modules in frontend
 pinboard-frontend/node_modules/
 node_modules
+# Python bytecode and cache
+*.py[cod]
+__pycache__/
