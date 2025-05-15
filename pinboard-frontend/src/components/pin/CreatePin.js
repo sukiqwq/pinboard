@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getBoards } from '../../services/boardService';
-import { uploadPicture, createPin } from '../../services/pinService';
+import { uploadPicture, createPin, createRepin } from '../../services/pinService';
 import styled from 'styled-components';
 
 const CreatePinContainer = styled.div`
@@ -172,18 +172,21 @@ const BoardLink = styled.a`
   }
 `;
 
-const CreatePin = () => {
+const CreatePin = (props) => {
+  const location = useLocation();
+  const { isRepin, originPin } = location.state || {}; // 获取传递的参数
+  console.log('isRepin:', isRepin, 'originPin:', originPin); // 调试输出
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     boardId: '',
-    tags: '',
+    tags: isRepin && originPin ? originPin.picture_detail.tags : '', // 如果是转存，使用原始 Pin 的标签
     description: '',
     title: ''
   });
-  const [imageFile, setImageFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(isRepin && originPin ? originPin.picture_detail?.image_url : null);
+  const [imageFile, setImageFile] = useState(isRepin ? null : null); // 如果是 repin，不允许上传新图片
   const [boards, setBoards] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -208,7 +211,7 @@ const CreatePin = () => {
     };
 
     fetchBoards();
-  }, [currentUser]);
+  }, [currentUser, props.originPin]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -244,11 +247,6 @@ const CreatePin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!imageFile) {
-      setError('请选择一张图片上传');
-      return;
-    }
-
     if (!boardId) {
       setError('请选择一个面板');
       return;
@@ -258,29 +256,48 @@ const CreatePin = () => {
       setLoading(true);
       setError('');
 
-      // 1. 上传图片
-      const formData = new FormData();
-      formData.append('image_file', imageFile);
-      formData.append('tags', tags);
+      if (isRepin && originPin) {
+        // Repin 操作
+        const repinData = {
+          board: boardId,
+          origin_pin: originPin.pin_id,
+          title: title,
+          description: description,
+        };
 
-      const pictureResponse = await uploadPicture(formData);
-      const pictureId = pictureResponse.data.picture_id;
+        const repinResponse = await createRepin(repinData);
+        navigate(`/pin/${repinResponse.data.pin_id}`);
+      } else {
+        // 创建新 Pin 操作
+        if (!imageFile) {
+          setError('请选择一张图片上传');
+          return;
+        }
 
-      // 2. 创建Pin
-      const pinData = {
-        board: boardId,
-        picture: pictureId,
-        title,
-        description
-      };
+        // 1. 上传图片
+        const formData = new FormData();
+        formData.append('image_file', imageFile);
+        formData.append('tags', tags); // 使用用户输入的标签
 
-      const pinResponse = await createPin(pinData);
+        const pictureResponse = await uploadPicture(formData);
+        const pictureId = pictureResponse.data.picture_id;
 
-      // 3. 重定向到新创建的图钉
-      navigate(`/pin/${pinResponse.data.pin_id}`);
+        // 2. 创建 Pin
+        const pinData = {
+          board: boardId,
+          picture: pictureId,
+          title,
+          description,
+        };
+
+        const pinResponse = await createPin(pinData);
+
+        // 3. 重定向到新创建的图钉
+        navigate(`/pin/${pinResponse.data.pin_id}`);
+      }
     } catch (err) {
-      console.error('创建图钉失败:', err);
-      setError(err.response?.data?.message || '创建图钉失败，请稍后再试');
+      console.error('操作失败:', err);
+      setError(err.response?.data?.message || '操作失败，请稍后再试');
     } finally {
       setLoading(false);
     }
@@ -292,6 +309,12 @@ const CreatePin = () => {
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
+      {isRepin && originPin && (
+        <div style={{ marginBottom: '1rem', textAlign: 'center', color: '#666' }}>
+          正在转存图钉: <strong>{originPin.title}</strong>
+        </div>
+      )}
+
       <Form onSubmit={handleSubmit}>
         <FormRow>
           <FormColumn>
@@ -300,22 +323,25 @@ const CreatePin = () => {
                 <img src={previewUrl} alt="预览" />
               </ImagePreview>
             ) : (
-              <UploadArea onClick={() => document.getElementById('image-upload').click()}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
-                </svg>
-                <p>点击选择一张图片</p>
-                <p>或拖放图片到这里</p>
-                <input
-                  type="file"
-                  id="image-upload"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </UploadArea>
+              !isRepin && (
+                <UploadArea onClick={() => document.getElementById('image-upload').click()}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+                  </svg>
+                  <p>点击选择一张图片</p>
+                  <p>或拖放图片到这里</p>
+                  <input
+                    type="file"
+                    id="image-upload"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    disabled={isRepin} // 禁用上传功能
+                  />
+                </UploadArea>
+              )
             )}
 
-            {previewUrl && (
+            {previewUrl && !isRepin && (
               <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                 <button
                   type="button"
@@ -379,6 +405,7 @@ const CreatePin = () => {
                 value={tags}
                 onChange={handleChange}
                 placeholder="例如: 美食,甜点,巧克力"
+                disabled={isRepin} // 如果是转存，禁用标签输入框
               />
             </FormGroup>
 
@@ -395,7 +422,7 @@ const CreatePin = () => {
           </FormColumn>
         </FormRow>
 
-        <Button type="submit" disabled={loading || !imageFile || !boardId}>
+        <Button type="submit" disabled={loading || (!isRepin && !imageFile) || !boardId}>
           {loading ? '创建中...' : '创建图钉'}
         </Button>
       </Form>

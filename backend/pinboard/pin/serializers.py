@@ -80,12 +80,15 @@ class PinSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'timestamp', 'is_repin']
 
     def get_likes_received(self, obj):
-        return obj.likes_received.count()
+        target_pin = obj.origin_pin if obj.is_repin else obj
+        return target_pin.likes_received.count()
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            return Like.objects.filter(user=request.user, pin=obj).exists()
+            # 如果是 repin，检查原始 Pin 的点赞情况
+            target_pin = obj.origin_pin if obj.is_repin else obj
+            return Like.objects.filter(user=request.user, pin=target_pin).exists()
         return False
     
     def get_origin_pin_detail(self, obj):

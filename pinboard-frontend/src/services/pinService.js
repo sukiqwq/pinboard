@@ -62,7 +62,8 @@ export const unlikePin = async (pinId) => {
 
 // 创建 Repin
 export const createRepin = async (repinData) => {
-  return await api.post('/repins/', repinData);
+  const originPinId = repinData.origin_pin;
+  return await api.post(`/pins/${originPinId}/repin/`, repinData);
 };
 
 // 获取 Repin 详情

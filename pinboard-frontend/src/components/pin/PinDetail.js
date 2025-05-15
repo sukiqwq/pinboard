@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, MoreHorizontal, ArrowLeft, BookmarkPlus, Send } from 'lucide-react';
-import { getPin, getComments, addComment, likePin, unlikePin } from '../../services/pinService';
+import { Heart, MessageCircle, Share2, MoreHorizontal, ArrowLeft, BookmarkPlus, Send, Repeat } from 'lucide-react';
+import { getPin, getComments, addComment, likePin, unlikePin, createRepin } from '../../services/pinService';
 import { UserAvatar } from '../common/Navbar.styles';
 
 // 格式化日期时间的辅助函数
@@ -88,10 +88,18 @@ export default function PinDetail() {
     }
   };
 
-  // 处理收藏
-  const handleSave = () => {
-    // 收藏功能在提供的pinservice中没有对应的API，需要添加
-    setIsSaved(!isSaved);
+  const handleRepin = () => {
+    if (!window.confirm('确定要转存这个图钉吗？')) {
+      return; // 如果用户取消，则直接返回
+    }
+
+    // 跳转到 CreatePin 页面，并传递 isRepin 和 originPin 信息
+    navigate('/pin/create', {
+      state: {
+        isRepin: true,
+        originPin: pin, // 将当前 Pin 的信息传递过去
+      },
+    });
   };
 
   // 提交评论
@@ -99,7 +107,7 @@ export default function PinDetail() {
     if (commentText.trim() && !submittingComment) {
       try {
         setSubmittingComment(true);
-        const response = await addComment({ pinId, content: commentText }); // 支持 pinId 或 repinId
+        const response = await addComment({ pinId, content: commentText });
 
         // 添加新评论到列表
         setComments(prev => [...prev, response.data]);
@@ -165,12 +173,26 @@ export default function PinDetail() {
                   <span className="font-medium">{pin.user?.username || '未知用户'}</span>
                 </div>
                 <button
-                  className={`p-2 rounded-full ${isSaved ? 'bg-red-50 text-red-500' : 'hover:bg-gray-100'}`}
-                  onClick={handleSave}
+                  className={`p-2 rounded-full hover:bg-gray-100`}
+                  onClick={handleRepin}
                 >
-                  <BookmarkPlus size={24} />
+                  <Repeat size={24} />
                 </button>
               </div>
+
+              {/* 如果是转存的 Pin，显示小字说明和跳转链接 */}
+              {pin.is_repin && pin.origin_pin_detail && (
+                <div className="text-sm text-gray-500 mb-4">
+                  此图钉是repin, 点赞会点到原始pin上{' '}
+                  <a
+                    href={`/pin/${pin.origin_pin_detail.pin_id}`}
+                    className="text-blue-500 hover:underline"
+                  >
+                    原始pin
+                  </a>
+                </div>
+              )}
+
               <h1 className="text-xl font-bold mb-2">{pin.title}</h1>
               <p className="text-gray-700 mb-4">{pin.description}</p>
               {pin.tags && pin.tags.length > 0 && (

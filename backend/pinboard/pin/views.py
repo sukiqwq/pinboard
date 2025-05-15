@@ -249,6 +249,35 @@ class PinViewSet(viewsets.ModelViewSet):
             return Response({"message": "Like removed successfully."}, status=status.HTTP_204_NO_CONTENT)
         except Pin.DoesNotExist:
             return Response({"error": "Pin not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=True, methods=['post'], url_path='repin', permission_classes=[permissions.IsAuthenticated])
+    def repin(self, request, pk=None):
+        try:
+            board = request.data.get('board')  # 获取要添加到的 Board ID
+            # 获取当前的 Pin 对象
+            pin = self.get_object()
+            origin_pin = pin.origin_pin if pin.is_repin else pin  # 获取原始 Pin 对象
+
+            # 检查用户是否尝试转存自己的 Pin
+            if origin_pin.user == request.user:
+                return Response({"error": "You cannot repin your own pin."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 创建一个新的 Pin，设置 origin_pin 为当前 Pin
+            repin = Pin.objects.create(
+                user=request.user,
+                origin_pin=origin_pin,  # 设置原始 Pin
+                picture=pin.picture,  # 继承原始 Pin 的图片
+                title=request.data.get('title', pin.title),  # 使用新的标题
+                description=request.data.get('description', pin.description),  # 使用新的描述
+                board=Board.objects.get(board_id=board) if board else pin.board,  # 设置 Board
+            )
+
+            # 序列化并返回新创建的 Repin
+            serializer = PinSerializer(repin)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Pin.DoesNotExist:
+            return Response({"error": "Pin not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 
