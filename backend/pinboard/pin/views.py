@@ -206,9 +206,12 @@ class PinViewSet(viewsets.ModelViewSet):
             content = request.data.get('content')  # 获取评论内容
             allow_friends_comment = pin.board.allow_friends_comment  # 获取 Board 的设置
 
-            # 检查是否仅允许好友评论
-            if allow_friends_comment and not Friendship.objects.filter(user1=request.user, user2=pin.user).exists():
-                return Response({"error": "You are not allowed to comment on this pin."}, status=status.HTTP_403_FORBIDDEN)
+           # 检查是否仅允许好友评论
+            if allow_friends_comment:
+                is_friend = Friendship.objects.filter(user1=request.user, user2=pin.user).exists()
+                is_owner = pin.board.owner == request.user  # 检查当前用户是否是 Board 的 owner
+                if not (is_friend or is_owner):
+                    return Response({"error": "You are not allowed to comment on this pin. Only friends are allowed to comment on this board."}, status=status.HTTP_403_FORBIDDEN)
 
             if not content:
                 return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -569,7 +572,7 @@ class SearchViewSet(viewsets.ViewSet):
         # 分页
         start = (page - 1) * limit
         end = start + limit
-        serializer = UserSerializer(users[start:end], many=True)
+        serializer = UserSerializer(users[start:end], many=True, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 

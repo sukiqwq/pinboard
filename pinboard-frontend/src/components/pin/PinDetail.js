@@ -48,10 +48,10 @@ import {
 const formatRelativeTime = (dateString) => {
   const now = new Date();
   const date = new Date(dateString);
-  
+
   const diffTime = Math.abs(now - date);
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays < 1) {
     const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
     if (diffHours < 1) {
@@ -76,7 +76,7 @@ const PinDetail = () => {
   const { pinId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  
+
   const [pin, setPin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -84,6 +84,7 @@ const PinDetail = () => {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentError, setCommentError] = useState(null); // 新增状态变量
 
   // Fetch pin details
   useEffect(() => {
@@ -93,11 +94,11 @@ const PinDetail = () => {
         const response = await getPin(pinId);
         setPin(response.data);
         setIsLiked(response.data.is_liked || false);
-        
+
         // Fetch comments
         const commentsResponse = await getComments(pinId);
         setComments(commentsResponse.data);
-        
+
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch pin details:', err);
@@ -117,7 +118,7 @@ const PinDetail = () => {
       navigate('/login');
       return;
     }
-    
+
     try {
       if (isLiked) {
         await unlikePin(pinId);
@@ -144,8 +145,8 @@ const PinDetail = () => {
       navigate('/login');
       return;
     }
-    
-    if (!window.confirm('Are you sure you want to save this pin?')) {
+
+    if (!window.confirm('Are you sure you want to repin this pin?')) {
       return;
     }
 
@@ -160,22 +161,31 @@ const PinDetail = () => {
   // Submit comment
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!currentUser) {
       navigate('/login');
       return;
     }
-    
+
     if (commentText.trim() && !submittingComment) {
       try {
         setSubmittingComment(true);
+        setCommentError(null); // 清除之前的错误信息
+
         const response = await addComment({ pinId, content: commentText });
 
-        // Add new comment to list
+        // 添加新评论到列表
         setComments(prev => [response.data, ...prev]);
         setCommentText('');
       } catch (err) {
         console.error('Failed to add comment:', err);
+
+        // 捕获后端返回的错误信息
+        if (err.response && err.response.data && err.response.data.error) {
+          setCommentError(err.response.data.error); // 设置错误信息
+        } else {
+          setCommentError('Failed to add comment. Please try again later.');
+        }
       } finally {
         setSubmittingComment(false);
       }
@@ -221,7 +231,7 @@ const PinDetail = () => {
           </BackButton>
           <img src={imageUrl} alt={pin.title || 'Pin image'} />
         </ImageSection>
-        
+
         <ContentSection>
           <PinHeader>
             <UserInfo>
@@ -229,16 +239,16 @@ const PinDetail = () => {
                 <Avatar>{pin.user?.username.charAt(0).toUpperCase()}</Avatar>
                 <Username to={`/user/${pin.user?.username}`}>{pin.user?.username}</Username>
               </UserProfile>
-              
+
               <PinActions>
-                <ActionButton 
-                  liked={isLiked} 
+                <ActionButton
+                  liked={isLiked}
                   onClick={handleLike}
                   title={isLiked ? 'Unlike' : 'Like'}
                 >
                   <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
                 </ActionButton>
-                <ActionButton 
+                <ActionButton
                   onClick={handleRepin}
                   title="Save"
                 >
@@ -249,23 +259,23 @@ const PinDetail = () => {
                 </ActionButton>
               </PinActions>
             </UserInfo>
-            
+
             {/* Show repin source info if applicable */}
             {pin.is_repin && pin.origin_pin_detail && (
               <SourceInfo>
-                Repinned from <Link to={`/pin/${pin.origin_pin_detail.pin_id}`}>original pin</Link> 
+                Repinned from <Link to={`/pin/${pin.origin_pin_detail.pin_id}`}>original pin</Link>
                 (by <Link to={`/user/${pin.origin_pin_detail.user?.username}`}>{pin.origin_pin_detail.user?.username}</Link>)
               </SourceInfo>
             )}
           </PinHeader>
-          
+
           <PinContent>
             <PinTitle>{pin.title || 'Untitled'}</PinTitle>
-            
+
             {pin.description && (
               <PinDescription>{pin.description}</PinDescription>
             )}
-            
+
             {tags.length > 0 && (
               <TagsContainer>
                 {tags.map((tag, index) => (
@@ -273,16 +283,16 @@ const PinDetail = () => {
                 ))}
               </TagsContainer>
             )}
-            
+
             <StatsRow>
               <span>{pin.likes_received || 0} likes</span>
               <span>{comments.length} comments</span>
             </StatsRow>
           </PinContent>
-          
+
           <CommentsSection>
             <CommentsTitle>Comments</CommentsTitle>
-            
+
             <CommentsList>
               {comments.length > 0 ? (
                 comments.map(comment => (
@@ -303,23 +313,29 @@ const PinDetail = () => {
                 <NoComments>No comments yet. Be the first to comment!</NoComments>
               )}
             </CommentsList>
-            
+
             <CommentForm onSubmit={handleCommentSubmit}>
-              <CommentInput 
+              <CommentInput
                 type="text"
                 placeholder="Add a comment..."
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 disabled={submittingComment}
               />
-              <CommentButton 
-                type="submit" 
+              <CommentButton
+                type="submit"
                 disabled={submittingComment || !commentText.trim()}
                 title="Post comment"
               >
                 <Send size={18} />
               </CommentButton>
             </CommentForm>
+
+            {commentError && (
+              <ErrorContainer>
+                <ErrorMessage>{commentError}</ErrorMessage>
+              </ErrorContainer>
+            )}
           </CommentsSection>
         </ContentSection>
       </PinWrapper>

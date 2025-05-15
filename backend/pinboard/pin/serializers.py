@@ -4,16 +4,28 @@ from .models import (
     CustomUser, FriendshipRequest, Friendship, Board, Picture,
     Pin, FollowStream, Like, Comment
 )
+from django.db.models import Q
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
+    is_friend = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'password', 'date_joined', 'profile_info']
+        fields = ['id', 'username', 'email', 'password', 'date_joined', 'profile_info', 'is_friend']
         extra_kwargs = {
             'password': {'write_only': True},
         }
+
+    def get_is_friend(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            # 检查好友关系
+            is_friend = Friendship.objects.filter(
+                (Q(user1=request.user, user2=obj) | Q(user1=obj, user2=request.user))
+            ).exists()
+            return is_friend
+        return False
 
     def create(self, validated_data):
         return CustomUser.objects.create_user(

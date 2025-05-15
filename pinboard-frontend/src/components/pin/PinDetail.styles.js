@@ -340,7 +340,7 @@ export const ErrorTitle = styled.h2`
 `;
 
 export const ErrorMessage = styled.p`
-  color: var(--text-secondary);
+  color: red;
   margin-bottom: var(--spacing-lg);
 `;
 

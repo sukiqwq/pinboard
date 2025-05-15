@@ -5,6 +5,7 @@ import { sendFriendRequest } from '../../services/socialService';
 import PinGrid from '../pin/PinGrid';
 import Spinner from '../common/Spinner';
 import styled from 'styled-components';
+import { useAuth } from '../../context/AuthContext';
 
 const SearchContainer = styled.div`
   max-width: 1200px;
@@ -209,10 +210,30 @@ const NoResultsMessage = styled.p`
   margin-bottom: 1.5rem;
 `;
 
+const StatusBadge = styled.span`
+  background-color: #e0f7fa;
+  color: #00796b;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  margin-left: 1rem;
+`;
+
+const FriendIcon = styled.div`
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4caf50;
+  margin-left: 1rem;
+`;
+
 const SearchResults = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const query = new URLSearchParams(location.search).get('q') || '';
+  const { currentUser } = useAuth(); // 获取当前用户信息
 
   const [activeTab, setActiveTab] = useState('pins');
   const [pins, setPins] = useState([]);
@@ -232,10 +253,8 @@ const SearchResults = () => {
         setLoading(true);
         setError(null);
 
-        // 根据当前活动标签获取对应的搜索结果
         if (activeTab === 'pins') {
           const response = await searchPins(query);
-          console.log('Pins response:', response.data);
           setPins(response.data);
         } else if (activeTab === 'tags') {
           const response = await searchTags(query);
@@ -245,6 +264,7 @@ const SearchResults = () => {
           setBoards(response.data);
         } else if (activeTab === 'users') {
           const response = await searchUsers(query);
+          console.log('Users:', response.data);
           setUsers(response.data);
         }
 
@@ -267,10 +287,6 @@ const SearchResults = () => {
     navigate(`/user/${username}`);
   };
 
-  const handleBoardClick = (boardId) => {
-    navigate(`/board/${boardId}`);
-  };
-
   const handleSendFriendRequest = async (user_id) => {
     try {
       await sendFriendRequest(user_id);
@@ -279,6 +295,10 @@ const SearchResults = () => {
       console.error('发送好友请求失败:', err);
       alert('发送好友请求失败，请稍后再试。');
     }
+  };
+
+  const handleBoardClick = (boardId) => {
+    navigate(`/board/${boardId}`);
   };
 
   if (!query.trim()) {
@@ -408,31 +428,46 @@ const SearchResults = () => {
                       <UserAvatar>{user.username.charAt(0).toUpperCase()}</UserAvatar>
                       <UserInfo>
                         <Username>{user.username}</Username>
-                        {user.profile_info && (
-                          <UserBio>{user.profile_info}</UserBio>
-                        )}
+                        {user.profile_info && <UserBio>{user.profile_info}</UserBio>}
                         <UserStat>
                           {user.board_count || 0} 个面板 • {user.pin_count || 0} 个图钉
                         </UserStat>
                       </UserInfo>
-                      <AddFriendButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSendFriendRequest(user.id);
-                        }}
-                        aria-label="添加好友"
-                      >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          xmlns="http://www.w3.org/2000/svg"
+                      {/* 动态显示好友图标或 "Me" 标签 */}
+                      {user.id === currentUser.id ? (
+                        <StatusBadge>Me</StatusBadge>
+                      ) : user.is_friend ? (
+                        <FriendIcon title="好友">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                          </svg>
+                        </FriendIcon>
+                      ) : (
+                        <AddFriendButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSendFriendRequest(user.id);
+                          }}
+                          aria-label="添加好友"
                         >
-                          <path d="M4 11H20V13H4V11Z" />
-                          <path d="M11 4H13V20H11V4Z" />
-                        </svg>
-                      </AddFriendButton>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path d="M4 11H20V13H4V11Z" />
+                            <path d="M11 4H13V20H11V4Z" />
+                          </svg>
+                        </AddFriendButton>
+                      )}
                     </UserCard>
                   ))}
                 </div>
