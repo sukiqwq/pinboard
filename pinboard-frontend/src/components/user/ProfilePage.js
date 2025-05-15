@@ -7,6 +7,8 @@ import { getUserPins } from '../../services/pinService';
 import { sendFriendRequest, checkFriendshipStatus } from '../../services/socialService';
 import Spinner from '../common/Spinner';
 import PinGrid from '../pin/PinGrid';
+import BoardCard from '../board/BoardCard';
+import CreateBoardButton from '../board/CreateBoardButton';
 // Import styles from separate file
 import {
   ProfileContainer,
@@ -27,11 +29,6 @@ import {
   Tab,
   BoardsGrid,
   PinGridWrapper,
-  BoardCard,
-  BoardThumbnail,
-  BoardInfo,
-  BoardName,
-  BoardStats,
   EmptyState,
   EmptyStateTitle,
   EmptyStateMessage,
@@ -73,10 +70,6 @@ const ProfilePage = () => {
     }
   }, [profile, currentUser, username]);
 
-  useEffect(() => {
-    console.log('pins state updated:', pins);
-  }, [pins]);
-
   const fetchProfileData = async () => {
     try {
       setLoading(true);
@@ -103,12 +96,9 @@ const ProfilePage = () => {
       setProfile(profileResponse.data);
       
       const userId = profileResponse.data.user_id || profileResponse.data.id;
-      console.log('User profile data:', profileResponse.data);
-      console.log('Extracted user ID:', userId);
       
       try {
         const boardsResponse = await getBoards(userId);
-        console.log('Boards data:', boardsResponse.data);
         setBoards(boardsResponse.data);
       } catch (err) {
         console.error('Failed to fetch boards:', err);
@@ -116,15 +106,11 @@ const ProfilePage = () => {
       }
       
       try {
-        console.log(`Fetching pins for user ${userId}`);
         const pinsResponse = await getUserPins(userId);
-        console.log('Pins API response:', pinsResponse);
-        console.log('Pins data:', pinsResponse.data);
         setPins(Array.isArray(pinsResponse.data) ? pinsResponse.data : []);
         setPinsLoaded(true);
       } catch (err) {
         console.error('Failed to fetch pins:', err);
-        console.error('Error details:', err.response?.data || err.message);
         setPins([]);
       }
       
@@ -158,17 +144,14 @@ const ProfilePage = () => {
   };
   
   const handleTabChange = (tab) => {
-    console.log('Switching to tab:', tab);
     setActiveTab(tab);
     
     if (tab === 'pins' && !pinsLoaded && profile) {
       const userId = profile.user_id || profile.id;
-      console.log(`Tab switched to pins, fetching pins for user ${userId}`);
       
       const loadPins = async () => {
         try {
           const pinsResponse = await getUserPins(userId);
-          console.log('Pins API response after tab switch:', pinsResponse);
           setPins(Array.isArray(pinsResponse.data) ? pinsResponse.data : []);
           setPinsLoaded(true);
         } catch (err) {
@@ -226,9 +209,6 @@ const ProfilePage = () => {
       </ErrorContainer>
     );
   }
-  
-  console.log('Pre-render pins data check:', pins);
-  console.log('Rendering ProfilePage, activeTab:', activeTab);
   
   return (
     <ProfileContainer>
@@ -302,32 +282,11 @@ const ProfilePage = () => {
             {boards.length > 0 ? (
               <BoardsGrid>
                 {boards.map(board => (
-                  <BoardCard key={board.board_id} to={`/board/${board.board_id}`}>
-                    <BoardThumbnail>
-                      {board.cover_image ? (
-                        <img src={board.cover_image} alt={board.board_name} />
-                      ) : (
-                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-                          No image
-                        </div>
-                      )}
-                    </BoardThumbnail>
-                    <BoardInfo>
-                      <BoardName>{board.board_name}</BoardName>
-                      <BoardStats>{board.pin_count || 0} pins</BoardStats>
-                    </BoardInfo>
-                  </BoardCard>
+                  <BoardCard key={board.board_id} board={board} />
                 ))}
                 
                 {isOwnProfile && (
-                  <BoardCard to="/board/create" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="#666" />
-                      </svg>
-                      <div style={{ marginTop: '0.5rem', color: '#666' }}>Create Board</div>
-                    </div>
-                  </BoardCard>
+                  <CreateBoardButton to="/board/create" />
                 )}
               </BoardsGrid>
             ) : (
@@ -355,7 +314,6 @@ const ProfilePage = () => {
         
         {activeTab === 'pins' && (
           <TabContent>
-            {console.log('Rendering pins section, pins count:', pins.length)}
             {pins.length > 0 ? (
               <PinGridWrapper>
                 <PinGrid pins={pins} />
