@@ -15,7 +15,8 @@ import PinDetail from './components/pin/PinDetail';
 import CreatePin from './components/pin/CreatePin';
 import SearchResults from './components/search/SearchResults';
 import FriendRequests from './components/social/FriendRequests';
-import FollowStreamsPage from './components/followstream/FollowStreamsPage'; // Import the new component
+import FollowStreamsPage from './components/followstream/FollowStreamsPage';
+import StreamPinsPage from './components/followstream/StreamPinsPage';
 import NotFound from './components/common/NotFound';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/Layout';
@@ -50,6 +51,7 @@ const App = () => {
             <Route path="/pin/create" element={<CreatePin />} />
             <Route path="/friend-requests" element={<FriendRequests />} />
             <Route path="/follow-streams" element={<FollowStreamsPage />} />
+            <Route path="/follow-streams/:streamId/pins" element={<StreamPinsPage />} />
             <Route path="/profile/edit" element={<EditProfile />} />
           </Route>
           

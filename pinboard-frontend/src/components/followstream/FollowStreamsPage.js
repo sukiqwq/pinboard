@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   getUserFollowStreams, 
   createFollowStream, 
@@ -261,6 +261,14 @@ const TrashIcon = () => (
   </svg>
 );
 
+const GalleryIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+    <polyline points="21 15 16 10 5 21"></polyline>
+  </svg>
+);
+
 const FollowStreamsPage = () => {
   const [streams, setStreams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -270,6 +278,7 @@ const FollowStreamsPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newStreamName, setNewStreamName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
   
   // New state for editing stream names
   const [editingStreamId, setEditingStreamId] = useState(null);
@@ -542,6 +551,16 @@ const FollowStreamsPage = () => {
                   ) : (
                     // Normal mode actions
                     <>
+                      <ActionButton
+                        primary
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/follow-streams/${stream.stream_id}/pins`);
+                        }}
+                        title="View all pins"
+                      >
+                        <GalleryIcon />
+                      </ActionButton>
                       <ActionButton
                         onClick={() => handleEditClick(stream)}
                         title="Edit name"

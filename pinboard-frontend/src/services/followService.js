@@ -30,6 +30,11 @@ export const getStreamBoards = async (streamId) => {
   return await api.get(`/follow-streams/${streamId}/boards/`);
 };
 
+// 获取关注流中的所有图钉
+export const getStreamPins = async (streamId) => {
+  return await api.get(`/follow-streams/${streamId}/pictures/`);
+};
+
 // 在这个实现中，followBoard 必须通过 addBoardToStream 来关注面板
 // 关注面板（通过取消关注后重新添加到流中实现）
 export const followBoard = async (boardId) => {
