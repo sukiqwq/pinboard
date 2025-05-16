@@ -96,6 +96,29 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    @action(detail=True, methods=['get'], url_path='friends')
+    def get_friends(self, request, pk=None):
+        """获取用户的好友列表"""
+        try:
+            user = self.get_object()
+
+            # 查找该用户参与的所有好友关系
+            # Friendship 表中记录了 user1 和 user2 之间的好友关系
+            # 需要查找所有 user1=user 或 user2=user 的记录
+            friendships = Friendship.objects.filter(
+                Q(user1=user) | Q(user2=user)
+            )
+
+            # 提取好友用户对象
+            friends = []
+            for friendship in friendships:
+                friend = friendship.user2 if friendship.user1 == user else friendship.user1
+                friends.append(friend)
+
+            serializer = UserSerializer(friends, many=True, context={'request': request})
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
     # 其他 UserViewSet 的方法，例如 list, retrieve, update, destroy
