@@ -557,9 +557,6 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 
 class SearchViewSet(viewsets.ViewSet):
-    """
-    搜索 API，支持 Pins、Boards、Users 和 Tags 的分页搜索
-    """
 
     @action(detail=False, methods=['get'], url_path='pins')
     def search_pins(self, request):

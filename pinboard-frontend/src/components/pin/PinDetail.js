@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom'; // Link 已导入
 import { Heart, MessageCircle, Share2, MoreHorizontal, Repeat, Send, ArrowLeft } from 'lucide-react';
 import { getPin, getComments, addComment, likePin, unlikePin } from '../../services/pinService';
 import { useAuth } from '../../context/AuthContext';
@@ -20,6 +20,7 @@ import {
   PinContent,
   PinTitle,
   PinDescription,
+  BoardLinkContainer,
   TagsContainer,
   Tag,
   StatsRow,
@@ -84,9 +85,8 @@ const PinDetail = () => {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [commentError, setCommentError] = useState(null); // 新增状态变量
+  const [commentError, setCommentError] = useState(null);
 
-  // Fetch pin details
   useEffect(() => {
     const fetchPinData = async () => {
       try {
@@ -95,7 +95,6 @@ const PinDetail = () => {
         setPin(response.data);
         setIsLiked(response.data.is_liked || false);
 
-        // Fetch comments
         const commentsResponse = await getComments(pinId);
         setComments(commentsResponse.data);
 
@@ -112,7 +111,6 @@ const PinDetail = () => {
     }
   }, [pinId]);
 
-  // Handle like/unlike
   const handleLike = async () => {
     if (!currentUser) {
       navigate('/login');
@@ -139,7 +137,6 @@ const PinDetail = () => {
     }
   };
 
-  // Handle repin
   const handleRepin = () => {
     if (!currentUser) {
       navigate('/login');
@@ -158,7 +155,6 @@ const PinDetail = () => {
     });
   };
 
-  // Submit comment
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
 
@@ -170,19 +166,16 @@ const PinDetail = () => {
     if (commentText.trim() && !submittingComment) {
       try {
         setSubmittingComment(true);
-        setCommentError(null); // 清除之前的错误信息
+        setCommentError(null);
 
         const response = await addComment({ pinId, content: commentText });
 
-        // 添加新评论到列表
         setComments(prev => [response.data, ...prev]);
         setCommentText('');
       } catch (err) {
         console.error('Failed to add comment:', err);
-
-        // 捕获后端返回的错误信息
         if (err.response && err.response.data && err.response.data.error) {
-          setCommentError(err.response.data.error); // 设置错误信息
+          setCommentError(err.response.data.error);
         } else {
           setCommentError('Failed to add comment. Please try again later.');
         }
@@ -192,7 +185,6 @@ const PinDetail = () => {
     }
   };
 
-  // Go back button
   const handleGoBack = () => {
     navigate(-1);
   };
@@ -217,10 +209,11 @@ const PinDetail = () => {
     );
   }
 
-  // Get image URL
   const imageUrl = pin.picture_detail?.image_url || pin.picture_detail?.image_file;
-  // Convert tags string to array
   const tags = pin.picture_detail?.tags?.split(',').filter(tag => tag.trim()) || [];
+
+  const boardId = pin.board;
+
 
   return (
     <Container>
@@ -260,7 +253,6 @@ const PinDetail = () => {
               </PinActions>
             </UserInfo>
 
-            {/* Show repin source info if applicable */}
             {pin.is_repin && pin.origin_pin_detail && (
               <SourceInfo>
                 Repinned from <Link to={`/pin/${pin.origin_pin_detail.pin_id}`}>original pin</Link>
@@ -271,6 +263,13 @@ const PinDetail = () => {
 
           <PinContent>
             <PinTitle>{pin.title || 'Untitled'}</PinTitle>
+
+            {boardId && (
+              <BoardLinkContainer>
+                From <Link to={`/board/${boardId}`}>Board</Link>
+              </BoardLinkContainer>
+            )}
+
 
             {pin.description && (
               <PinDescription>{pin.description}</PinDescription>
