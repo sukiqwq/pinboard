@@ -151,7 +151,7 @@ const PinItem = ({ pin }) => {
   if (!pin || !pin.pin_id) {
     return (
       <PinContainer>
-        <ImagePlaceholder>图钉数据加载失败</ImagePlaceholder>
+        <ImagePlaceholder>Failed to load pin data</ImagePlaceholder>
       </PinContainer>
     );
   }
@@ -162,7 +162,7 @@ const PinItem = ({ pin }) => {
     e.stopPropagation();
 
     if (!currentUser) {
-      console.log('用户未登录，无法点赞');
+      console.log('User not logged in, unable to like');
       return;
     }
 
@@ -177,14 +177,14 @@ const PinItem = ({ pin }) => {
         setLikeCount(prev => prev + 1);
       }
     } catch (error) {
-      console.error('点赞/取消点赞操作失败:', error);
+      console.error('Failed to like/unlike pin:', error);
     }
   };
 
   const imageUrl = pin.picture_detail?.image_url || pin.picture_detail?.image_file;
-  const imageAlt = pin.picture_detail?.tags ?? pin.title ?? '图钉图片';
-  const pinTitle = pin.title ?? '无标题';
-  const pinUsername = pin.user?.username || '用户';
+  const imageAlt = pin.picture_detail?.tags ?? pin.title ?? 'Pin image';
+  const pinTitle = pin.title ?? 'Untitled';
+  const pinUsername = pin.user?.username || 'User';
 
   return (
     <PinContainer>
@@ -197,21 +197,21 @@ const PinItem = ({ pin }) => {
             onError={() => setImageError(true)}
           />
         ) : (
-          <ImagePlaceholder>{imageUrl ? '图片加载失败' : '无可用图片'}</ImagePlaceholder>
+          <ImagePlaceholder>{imageUrl ? 'Failed to load image' : 'No image available'}</ImagePlaceholder>
         )}
 
         <PinOverlay>
           <PinOverlayContent className="pin-overlay-content">
             <PinDetails>
               <PinTitle title={pinTitle}>{pinTitle}</PinTitle>
-              <PinUser>由 {pinUsername} 钉入</PinUser>
+              <PinUser>Pinned by {pinUsername}</PinUser>
             </PinDetails>
 
             <PinActions>
               <PinLikeButton
                 liked={liked}
                 onClick={handleLikeToggle}
-                aria-label={liked ? '取消点赞' : '点赞'}
+                aria-label={liked ? 'Unlike' : 'Like'}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" />

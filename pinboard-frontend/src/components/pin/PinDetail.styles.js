@@ -307,6 +307,23 @@ export const CommentInput = styled.input`
   }
 `;
 
+export const BoardLinkContainer = styled.div`
+  margin-top: 8px; // 示例上边距
+  margin-bottom: 12px; // 示例下边距
+  font-size: 0.9em;
+  color: #555;
+
+  a { // 链接样式
+    color: #007bff; // 示例链接颜色
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+`;
+
 export const CommentButton = styled.button`
   background-color: ${props => props.disabled ? 'var(--light-gray)' : 'var(--primary-color)'};
   color: ${props => props.disabled ? 'var(--medium-gray)' : 'white'};
