@@ -177,8 +177,18 @@ class PictureViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
-        # Set uploaded_by to the currently logged-in user [cite: 3]
-        serializer.save(uploaded_by=self.request.user)
+        # 处理图片上传 - 可以是文件上传或URL
+        external_url = self.request.data.get('external_url')
+
+        if external_url:
+            # 如果提供了外部URL，使用URL保存图片
+            serializer.save(
+                uploaded_by=self.request.user,
+                external_url=external_url
+            )
+        else:
+            # 默认情况，使用上传的文件
+            serializer.save(uploaded_by=self.request.user)
 
     # Keyword search for pictures by tags [cite: 27]
     @action(detail=False, methods=['get'])
@@ -553,17 +563,36 @@ class SearchViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'], url_path='pins')
     def search_pins(self, request):
+        from django.db.models import Count  # 在方法内导入Count
+
         query = request.query_params.get('q', '').strip()
         page = int(request.query_params.get('page', 1))
         limit = int(request.query_params.get('limit', 20))
+        sort_by = request.query_params.get('sort_by', 'timestamp')
 
         if not query:
             return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # 搜索 Pin（通过标题或图片标签）
         pins = Pin.objects.filter(
             Q(picture__tags__icontains=query) | Q(title__icontains=query)
         ).distinct()
 
+        # 添加排序逻辑
+        if sort_by == 'likes':
+            # 按点赞数量排序（从高到低）
+            # 使用 annotate 来计算每个 Pin 的点赞数量
+            pins = pins.annotate(likes_count=Count('likes_received')).order_by('-likes_count')
+        elif sort_by == 'comments':
+            # 按评论数量排序
+            pins = pins.annotate(comments_count=Count('comments')).order_by('-comments_count')
+        elif sort_by == 'repins':
+            # 按转存次数排序
+            pins = pins.annotate(repin_count=Count('repins')).order_by('-repin_count')
+        else:  # 默认按时间排序
+            pins = pins.order_by('-timestamp')
+
+        # 分页
         start = (page - 1) * limit
         end = start + limit
         serializer = PinSerializer(pins[start:end], many=True, context={'request': request})
@@ -612,15 +641,31 @@ class SearchViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'], url_path='tags')
     def search_tags(self, request):
+        from django.db.models import Count  # 在方法内导入Count
+
         query = request.query_params.get('q', '').strip()
         page = int(request.query_params.get('page', 1))
         limit = int(request.query_params.get('limit', 20))
+        sort_by = request.query_params.get('sort_by', 'timestamp')
 
         if not query:
             return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # 搜索 Tags（通过图片的 tag）
         pins = Pin.objects.filter(picture__tags__icontains=query).distinct()
+
+        # 添加排序逻辑
+        if sort_by == 'likes':
+            # 按点赞数量排序（从高到低）
+            pins = pins.annotate(likes_count=Count('likes_received')).order_by('-likes_count')
+        elif sort_by == 'comments':
+            # 按评论数量排序
+            pins = pins.annotate(comments_count=Count('comments')).order_by('-comments_count')
+        elif sort_by == 'repins':
+            # 按转存次数排序
+            pins = pins.annotate(repin_count=Count('repins')).order_by('-repin_count')
+        else:  # 默认按时间排序
+            pins = pins.order_by('-timestamp')
 
         # 分页
         start = (page - 1) * limit

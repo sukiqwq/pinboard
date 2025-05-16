@@ -172,6 +172,51 @@ const BoardLink = styled.a`
   }
 `;
 
+const UploadOptions = styled.div`
+  display: flex;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+`;
+
+const UploadTab = styled.button`
+  background: none;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 3px solid ${props => props.active ? '#e60023' : 'transparent'};
+  color: ${props => props.active ? '#e60023' : '#666'};
+  font-weight: ${props => props.active ? 'bold' : 'normal'};
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    color: #e60023;
+  }
+`;
+
+const UrlInput = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const UrlButton = styled.button`
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #ddd;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
 const CreatePin = (props) => {
   const location = useLocation();
   const { isRepin, originPin } = location.state || {}; // 获取传递的参数
@@ -183,15 +228,20 @@ const CreatePin = (props) => {
     boardId: '',
     tags: isRepin && originPin ? originPin.picture_detail.tags : '', // 如果是转存，使用原始 Pin 的标签
     description: '',
-    title: ''
+    title: '',
+    imageUrl: '' // 新增：URL上传的图片地址
   });
   const [previewUrl, setPreviewUrl] = useState(isRepin && originPin ? originPin.picture_detail?.image_url : null);
   const [imageFile, setImageFile] = useState(isRepin ? null : null); // 如果是 repin，不允许上传新图片
   const [boards, setBoards] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // 新增：上传方式选择
+  const [uploadMethod, setUploadMethod] = useState('local'); // 'local' or 'url'
+  const [fetchingUrl, setFetchingUrl] = useState(false);
 
-  const { boardId, tags, description, title } = formData;
+  const { boardId, tags, description, title, imageUrl } = formData;
 
   // 获取用户的面板列表
   useEffect(() => {
@@ -243,6 +293,29 @@ const CreatePin = (props) => {
       reader.readAsDataURL(file);
     }
   };
+  
+  // 处理URL图片预览
+  const handleFetchImageUrl = () => {
+    if (!imageUrl.trim()) {
+      setError('Please enter a valid image URL');
+      return;
+    }
+    
+    setFetchingUrl(true);
+    setError('');
+    
+    // 创建一个Image对象来测试URL是否有效
+    const img = new Image();
+    img.onload = () => {
+      setPreviewUrl(imageUrl);
+      setFetchingUrl(false);
+    };
+    img.onerror = () => {
+      setError('Failed to load image from URL. Please check the URL and try again.');
+      setFetchingUrl(false);
+    };
+    img.src = imageUrl;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -269,14 +342,27 @@ const CreatePin = (props) => {
         navigate(`/pin/${repinResponse.data.pin_id}`);
       } else {
         // 创建新 Pin 操作
-        if (!imageFile) {
+        if (uploadMethod === 'local' && !imageFile) {
           setError('Please select an image to upload.');
+          setLoading(false);
+          return;
+        }
+        
+        if (uploadMethod === 'url' && !previewUrl) {
+          setError('Please enter a valid image URL and fetch the image.');
+          setLoading(false);
           return;
         }
 
         // 1. 上传图片
         const formData = new FormData();
-        formData.append('image_file', imageFile);
+        
+        if (uploadMethod === 'local') {
+          formData.append('image_file', imageFile);
+        } else {
+          formData.append('external_url', imageUrl);
+        }
+        
         formData.append('tags', tags); // 使用用户输入的标签
 
         const pictureResponse = await uploadPicture(formData);
@@ -318,26 +404,66 @@ const CreatePin = (props) => {
       <Form onSubmit={handleSubmit}>
         <FormRow>
           <FormColumn>
+            {!isRepin && (
+              <UploadOptions>
+                <UploadTab 
+                  active={uploadMethod === 'local'} 
+                  onClick={() => setUploadMethod('local')}
+                  type="button"
+                >
+                  Upload Image
+                </UploadTab>
+                <UploadTab 
+                  active={uploadMethod === 'url'} 
+                  onClick={() => setUploadMethod('url')}
+                  type="button"
+                >
+                  Image URL
+                </UploadTab>
+              </UploadOptions>
+            )}
+            
             {previewUrl ? (
               <ImagePreview>
                 <img src={previewUrl} alt="Preview" />
               </ImagePreview>
             ) : (
               !isRepin && (
-                <UploadArea onClick={() => document.getElementById('image-upload').click()}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
-                  </svg>
-                  <p>Click to select an image</p>
-                  <p>or drag and drop an image here</p>
-                  <input
-                    type="file"
-                    id="image-upload"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    disabled={isRepin} // 禁用上传功能
-                  />
-                </UploadArea>
+                uploadMethod === 'local' ? (
+                  <UploadArea onClick={() => document.getElementById('image-upload').click()}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+                    </svg>
+                    <p>Click to select an image</p>
+                    <p>or drag and drop an image here</p>
+                    <input
+                      type="file"
+                      id="image-upload"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      disabled={isRepin} // 禁用上传功能
+                    />
+                  </UploadArea>
+                ) : (
+                  <UrlInput>
+                    <Label htmlFor="imageUrl">Image URL</Label>
+                    <Input
+                      id="imageUrl"
+                      name="imageUrl"
+                      type="url"
+                      value={imageUrl}
+                      onChange={handleChange}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    <UrlButton 
+                      type="button" 
+                      onClick={handleFetchImageUrl}
+                      disabled={fetchingUrl || !imageUrl.trim()}
+                    >
+                      {fetchingUrl ? 'Fetching...' : 'Fetch Image'}
+                    </UrlButton>
+                  </UrlInput>
+                )
               )
             )}
 
@@ -348,6 +474,9 @@ const CreatePin = (props) => {
                   onClick={() => {
                     setPreviewUrl(null);
                     setImageFile(null);
+                    if (uploadMethod === 'url') {
+                      setFormData(prev => ({ ...prev, imageUrl: '' }));
+                    }
                   }}
                   style={{ background: 'none', border: 'none', color: '#e60023', cursor: 'pointer' }}
                 >
@@ -422,7 +551,15 @@ const CreatePin = (props) => {
           </FormColumn>
         </FormRow>
 
-        <Button type="submit" disabled={loading || (!isRepin && !imageFile) || !boardId}>
+        <Button 
+          type="submit" 
+          disabled={
+            loading || 
+            (!isRepin && uploadMethod === 'local' && !imageFile) || 
+            (!isRepin && uploadMethod === 'url' && !previewUrl) || 
+            !boardId
+          }
+        >
           {loading ? 'Creating...' : 'Create Pin'}
         </Button>
       </Form>

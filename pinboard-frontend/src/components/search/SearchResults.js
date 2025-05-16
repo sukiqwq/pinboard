@@ -24,7 +24,7 @@ const SearchQuery = styled.h1`
 const TabsContainer = styled.div`
   display: flex;
   border-bottom: 1px solid #ddd;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 `;
 
 const Tab = styled.button`
@@ -39,6 +39,32 @@ const Tab = styled.button`
   
   &:hover {
     color: #e60023;
+  }
+`;
+
+const SortingContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+  align-items: center;
+`;
+
+const SortLabel = styled.span`
+  margin-right: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+`;
+
+const SortSelect = styled.select`
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 0.9rem;
+  
+  &:focus {
+    outline: none;
+    border-color: #e60023;
   }
 `;
 
@@ -232,10 +258,14 @@ const FriendIcon = styled.div`
 const SearchResults = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const query = new URLSearchParams(location.search).get('q') || '';
-  const { currentUser } = useAuth(); // 获取当前用户信息
+  const searchParams = new URLSearchParams(location.search);
+  const query = searchParams.get('q') || '';
+  const urlSortBy = searchParams.get('sort_by') || 'timestamp';
+  
+  const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState('pins');
+  const [sortBy, setSortBy] = useState(urlSortBy);
   const [pins, setPins] = useState([]);
   const [boards, setBoards] = useState([]);
   const [users, setUsers] = useState([]);
@@ -254,10 +284,10 @@ const SearchResults = () => {
         setError(null);
 
         if (activeTab === 'pins') {
-          const response = await searchPins(query);
+          const response = await searchPins(query, 1, 20, sortBy);
           setPins(response.data);
         } else if (activeTab === 'tags') {
-          const response = await searchTags(query);
+          const response = await searchTags(query, 1, 20, sortBy);
           setPins(response.data);
         } else if (activeTab === 'boards') {
           const response = await searchBoards(query);
@@ -277,10 +307,25 @@ const SearchResults = () => {
     };
 
     fetchSearchResults();
-  }, [query, activeTab, navigate]);
+  }, [query, activeTab, sortBy, navigate]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+    
+    // 当切换标签时，更新URL但保留排序选项
+    const newParams = new URLSearchParams(location.search);
+    newParams.set('tab', tab);
+    navigate(`/search?${newParams.toString()}`);
+  };
+
+  const handleSortChange = (e) => {
+    const newSortBy = e.target.value;
+    setSortBy(newSortBy);
+    
+    // 更新URL中的排序参数
+    const newParams = new URLSearchParams(location.search);
+    newParams.set('sort_by', newSortBy);
+    navigate(`/search?${newParams.toString()}`);
   };
 
   const handleUserClick = (username) => {
@@ -336,6 +381,17 @@ const SearchResults = () => {
             Users
           </Tab>
         </TabsContainer>
+        
+        {/* 排序选项 - 仅在显示图钉或标签时显示 */}
+        {(activeTab === 'pins' || activeTab === 'tags') && (
+          <SortingContainer>
+            <SortLabel>Sort by:</SortLabel>
+            <SortSelect value={sortBy} onChange={handleSortChange}>
+              <option value="timestamp">Latest</option>
+              <option value="likes">Popular</option>
+            </SortSelect>
+          </SortingContainer>
+        )}
       </SearchHeader>
 
       {loading ? (

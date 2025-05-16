@@ -1,9 +1,9 @@
 import api from './api';
 
 // 搜索图钉
-export const searchPins = async (query, page = 1, limit = 20) => {
+export const searchPins = async (query, page = 1, limit = 20, sortBy = 'timestamp') => {
   return await api.get('/search/pins', {
-    params: { q: query, page, limit }
+    params: { q: query, page, limit, sort_by: sortBy }
   });
 };
 
@@ -22,9 +22,9 @@ export const searchUsers = async (query, page = 1, limit = 20) => {
 };
 
 // 搜索标签
-export const searchTags = async (query, page = 1, limit = 20) => {
+export const searchTags = async (query, page = 1, limit = 20, sortBy = 'timestamp') => {
   return await api.get('/search/tags', {
-    params: { q: query, page, limit }
+    params: { q: query, page, limit, sort_by: sortBy }
   });
 };
 

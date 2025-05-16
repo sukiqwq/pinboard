@@ -28,13 +28,24 @@ export const getUserPins = async (userId, page = 1, limit = 20) => {
 
 // 上传图片
 export const uploadPicture = async (formData) => {
-  return await api.post('/pictures/', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
+  // 检查是否是URL上传或文件上传
+  const isUrlUpload = formData.get('external_url');
+  
+  if (isUrlUpload) {
+    // 对于URL上传，使用JSON格式
+    return await api.post('/pictures/', {
+      external_url: formData.get('external_url'),
+      tags: formData.get('tags') || ''
+    });
+  } else {
+    // 对于文件上传，保持使用FormData
+    return await api.post('/pictures/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
 };
-
 // 创建图钉
 export const createPin = async (pinData) => {
   return await api.post('/pins/', pinData);
