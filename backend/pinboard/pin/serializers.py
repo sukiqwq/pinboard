@@ -131,17 +131,30 @@ class PinSerializer(serializers.ModelSerializer):
             target_pin = obj.origin_pin if obj.is_repin else obj
             return Like.objects.filter(user=request.user, pin=target_pin).exists()
         return False
-    
+
     def get_origin_pin_detail(self, obj):
         """获取原始Pin的详细信息"""
         if obj.origin_pin:
-            return {
-                'pin_id': obj.origin_pin.pin_id,
-                'user': UserSerializer(obj.origin_pin.user).data,
-                'title': obj.origin_pin.title,
-                'description': obj.origin_pin.description,
-                'timestamp': obj.origin_pin.timestamp,
-            }
+            try:
+                # 尝试访问origin_pin的属性，如果Pin已被删除将引发异常
+                origin_pin_id = obj.origin_pin.pin_id
+                origin_pin_user = obj.origin_pin.user
+
+                # 如果能够访问，返回详细信息
+                return {
+                    'pin_id': origin_pin_id,
+                    'user': UserSerializer(origin_pin_user).data,
+                    'title': obj.origin_pin.title,
+                    'description': obj.origin_pin.description,
+                    'timestamp': obj.origin_pin.timestamp,
+                }
+            except Pin.DoesNotExist:
+                # 原始Pin已被删除
+                return None
+            except Exception as e:
+                # 其他异常情况（如数据库一致性问题）
+                print(f"Error accessing origin_pin details: {str(e)}")
+                return None
         return None
 
 class BoardSerializer(serializers.ModelSerializer):

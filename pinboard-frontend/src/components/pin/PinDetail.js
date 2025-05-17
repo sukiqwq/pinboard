@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom'; // Link 已导入
-import { Heart, MessageCircle, Share2, MoreHorizontal, Repeat, Send, ArrowLeft } from 'lucide-react';
-import { getPin, getComments, addComment, likePin, unlikePin } from '../../services/pinService';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Repeat, Send, ArrowLeft, Trash2 } from 'lucide-react';
+import { getPin, getComments, addComment, likePin, unlikePin, deletePin } from '../../services/pinService';
 import { useAuth } from '../../context/AuthContext';
 import Spinner from '../common/Spinner';
+
 import {
   Container,
   PinWrapper,
@@ -155,6 +156,31 @@ const PinDetail = () => {
     });
   };
 
+  // 删除 Pin 的处理函数
+  const handleDeletePin = async () => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    // 调试信息
+    console.log('Delete button clicked');
+    console.log('Current user ID:', currentUser.id || currentUser.user_id);
+    console.log('Pin user ID:', pin.user?.id);
+
+    if (!window.confirm('Are you sure you want to delete this pin? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deletePin(pinId);
+      navigate('/'); // 删除后返回主页
+    } catch (err) {
+      console.error('Failed to delete pin:', err);
+      alert('Failed to delete pin. Please try again later.');
+    }
+  };
+
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
 
@@ -250,6 +276,20 @@ const PinDetail = () => {
                 <ActionButton title="Share">
                   <Share2 size={20} />
                 </ActionButton>
+                
+                {currentUser && pin.user && 
+                  (currentUser.id === pin.user.id || 
+                   currentUser.user_id === pin.user.id ||
+                   String(currentUser.id) === String(pin.user.id) ||
+                   String(currentUser.user_id) === String(pin.user.id)) && (
+                  <ActionButton 
+                    onClick={handleDeletePin}
+                    title="Delete pin"
+                    style={{ color: 'var(--primary-color)' }}
+                  >
+                    <Trash2 size={20} />
+                  </ActionButton>
+                )}
               </PinActions>
             </UserInfo>
 

@@ -369,7 +369,31 @@ class PinViewSet(viewsets.ModelViewSet):
 
         except Pin.DoesNotExist:
             return Response({"error": "Pin not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            pin = self.get_object()
+            # 检查用户权限 - 只有Pin的创建者才能删除
+            if pin.user != request.user:
+                return Response(
+                    {"error": "You do not have permission to delete this pin."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            # 获取关联的图片
+            picture = pin.picture
+            # 执行Pin删除
+            response = super().destroy(request, *args, **kwargs)
+            # 检查图片是否还被其他Pin引用
+            if picture and not Pin.objects.filter(picture=picture).exists():
+                # 如果没有其他Pin引用此图片，则删除图片
+                picture.delete()
+            return response
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to delete pin: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class FriendshipRequestViewSet(viewsets.ModelViewSet):
     queryset = FriendshipRequest.objects.all()

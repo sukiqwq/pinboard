@@ -41,8 +41,8 @@ const PinGrid = ({ pins, loading }) => {
       className="pin-grid"
       columnClassName="pin-grid-column"
     >
-      {pins.map(pin => (
-        <PinItem key={pin.pin_id} pin={pin} />
+      {pins.map((pin, index) => (
+        <PinItem key={`${pin.pin_id}-${index}`} pin={pin} />
       ))}
     </StyledMasonry>
   );

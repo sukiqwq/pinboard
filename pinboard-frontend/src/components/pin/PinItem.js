@@ -97,11 +97,11 @@ const PinButton = styled.button`
 `;
 
 const PinLikeButton = styled(PinButton)`
-  background-color: ${props => props.liked ? '#e60023' : 'rgba(255, 255, 255, 0.9)'};
-  color: ${props => props.liked ? 'white' : '#333'};
+  background-color: ${props => props.$liked ? '#e60023' : 'rgba(255, 255, 255, 0.9)'};
+  color: ${props => props.$liked ? 'white' : '#333'};
   
   &:hover {
-    background-color: ${props => props.liked ? '#ad081b' : '#f0f0f0'};
+    background-color: ${props => props.$liked ? '#ad081b' : '#f0f0f0'};
   }
 `;
 
@@ -209,7 +209,7 @@ const PinItem = ({ pin }) => {
 
             <PinActions>
               <PinLikeButton
-                liked={liked}
+                $liked={liked}
                 onClick={handleLikeToggle}
                 aria-label={liked ? 'Unlike' : 'Like'}
               >
