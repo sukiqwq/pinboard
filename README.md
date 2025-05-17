@@ -1,6 +1,3 @@
-# pinboard
-#Pinboard
-
 **Backend Environment Configuration:**
 
 1. Clone the project repository: `https://github.com/sukiqwq/pinboard.git`
