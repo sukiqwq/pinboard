@@ -35,38 +35,45 @@ const EditBoard = () => {
   const [submitting, setSubmitting] = useState(false);
   
   useEffect(() => {
-    const fetchBoard = async () => {
-      try {
-        setLoading(true);
+  const fetchBoard = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await getBoard(boardId);
+      const board = response.data;
+      
+      console.log('Board data:', board);
+      console.log('Current user:', currentUser);
+      
+      // 修改后的权限检查 - 使用用户名比较或正确的 ID 属性
+      const isOwner = currentUser && 
+        (currentUser.username === board.owner.username || 
+         currentUser.id === board.owner.id);
         
-        const response = await getBoard(boardId);
-        const board = response.data;
-        
-        // Check if the current user is the board owner
-        if (currentUser && board.owner.id !== currentUser.user_id) {
-          setError('You do not have permission to edit this board.');
-          navigate(`/board/${boardId}`);
-          return;
-        }
-        
-        // Initialize form with existing board data
-        setOriginalBoard(board);
-        setFormData({
-          boardName: board.board_name || '',
-          description: board.descriptor || '',
-          allowFriendsComment: board.allow_friends_comment || false
-        });
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to fetch board:', err);
-        setError('Failed to load board information. Please try again later.');
-        setLoading(false);
+      if (!isOwner) {
+        setError('You do not have permission to edit this board.');
+        navigate(`/board/${boardId}`);
+        return;
       }
-    };
-    
-    fetchBoard();
-  }, [boardId, currentUser, navigate]);
+      
+      // 初始化表单数据
+      setOriginalBoard(board);
+      setFormData({
+        boardName: board.board_name || '',
+        description: board.descriptor || '',
+        allowFriendsComment: board.allow_friends_comment || false
+      });
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to fetch board:', err);
+      setError('Failed to load board information. Please try again later.');
+      setLoading(false);
+    }
+  };
+  
+  fetchBoard();
+}, [boardId, currentUser, navigate]);
   
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
